@@ -101,8 +101,7 @@ async def shuffle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await context.bot.send_message( chat_id=groupsendid,
     text=
-    f"✅ file shuffle successfully*",
-    parse_mode="Markdown"
+    f"✅ file shuffle successfully*"
     )
 
 async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):

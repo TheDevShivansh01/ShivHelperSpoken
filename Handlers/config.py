@@ -145,7 +145,14 @@ ALLOWED_FILES = {
     "PreMauryaPeriod",
     "SangamPeriod",
     "VedicSociety",
-    "OddOneOut",
-    "ActivePassive",
-    "WorldTop"
+    "NDA_active_passive_voice1",
+    "WorldTop",
+    "Cgl_Quant",
+    "indus",
+    "spellCorrection4old",
+    "Nda_Synonyms_updated",
+    "Neet_Chemistry",
+    "UPSC_GS_2023",
+    "Upsc_history",
+    "Upsc_ScienceandTech"
 }

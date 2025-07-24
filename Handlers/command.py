@@ -12,8 +12,8 @@ from collections import defaultdict
 import asyncio,re,random,time
 
 
-TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
-#TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
+#TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
+TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
 BOT_USERNAME: Final = '@slizzyy_bot'
 
 ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1001817635995]
@@ -837,6 +837,7 @@ async def calculate_scores(chat_id, context):
     global groupsendid
     if chat_id not in quiz_scores or not quiz_scores[chat_id]:
         quiz_state.pop(chat_id, None)
+        quiz_scores.pop(chat_id, None)
         await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
         return
 
