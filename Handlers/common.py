@@ -88,9 +88,18 @@ async def scheduled_send_word(app):
         bot = app.bot
     
     await send_word_of_the_day(DummyUpdate(), DummyContext())
-    await shuffle_all_files_inplace()
+    await shuffle_command(DummyUpdate(), DummyContext())
+    
 
+async def shuffle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    shuffle_all_files_inplace()
+    
+    await context.bot.send_message( chat_id=botManagementGroupId,
+    text=
+    f"✅ file shuffle successfully*",
+    parse_mode="Markdown"
+    )
 
 async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups, botManagementGroupId
