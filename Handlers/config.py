@@ -4,7 +4,7 @@ DIFFICULTY_MAP = {
     # Grammar
     'difficulty_synonyms': ('Data/SYNO5.xlsx', 'Synonyms'),
     'difficulty_antonyms': ('Data/Antonyms5.xlsx', 'Antonyms'),
-    'difficulty_spellcorr': ('Data/spellCorrection4.xlsx', 'Spelling Correction'),
+    'difficulty_spellcorr': ('Data/spellCorrection4old.xlsx', 'Spelling Correction'),
     'difficulty_sentcorr': ('Data/sentenceCorr4.xlsx', 'Sentence Correction'),
     'difficulty_shortIdiom': ('Data/basic_shortidiom.xlsx', 'Daily Life Idioms'),
 
