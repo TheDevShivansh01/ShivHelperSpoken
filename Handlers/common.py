@@ -1,4 +1,4 @@
-from Handlers.command import save_group_data,GROUPS_FILE , save_groups, group_data, registered_groups, botManagementGroupId
+from Handlers.command import save_group_data,GROUPS_FILE ,groupsendid, save_groups, group_data, registered_groups, botManagementGroupId
 from telegram import Update,InputFile
 from telegram.ext import  ContextTypes
 from Handlers.config import ALLOWED_FILES
@@ -83,19 +83,23 @@ async def scheduled_send_word(app):
     class DummyUpdate:
         effective_chat = type('obj', (), {'id': botManagementGroupId})()
         message = DummyMessage()
+    class DummyUpdate2:
+        effective_chat = type('obj', (), {'id': botManagementGroupId})()
+        message = DummyMessage()
+
 
     class DummyContext:
         bot = app.bot
     
     await send_word_of_the_day(DummyUpdate(), DummyContext())
-    await shuffle_command(DummyUpdate(), DummyContext())
+    await shuffle_command(DummyUpdate2(), DummyContext())
     
 
 async def shuffle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     shuffle_all_files_inplace()
     
-    await context.bot.send_message( chat_id=botManagementGroupId,
+    await context.bot.send_message( chat_id=groupsendid,
     text=
     f"✅ file shuffle successfully*",
     parse_mode="Markdown"
