@@ -41,6 +41,14 @@ DIFFICULTY_MAP = {
     'difficulty_upscscience': ('Data/Upsc_ScienceandTech.xlsx', 'Science and Technology'),
     'difficulty_thehindu': ('Data/thehindu.xlsx', 'Science and Technology'),
 
+    'difficulty_upscpresident': ('Data/IP_ThePresident.xlsx', 'The President'),
+    'difficulty_upscunionandstatefunction': ('Data/IP_FnResp_ofTheUnionandStates.xlsx', ' Union and State Function and Responsibilities'),
+    'difficulty_upscseperationofpower': ('Data/IP_SeperationofPower.xlsx', 'Separation of Power'),
+    'difficulty_upscstruggleforswaraj': ('Data/MH_StruggleofSwaraj.xlsx', 'Modern history - Struggle for Swaraj'),
+    'difficulty_upscearlynationalism': ('Data/MH_EarlyNationalism.xlsx', 'Modern history - Early Nationalism'),
+    'difficulty_upscrevolt1857': ('Data/MH_TheRevolt.xlsx', 'Modern history - Revolt of 1857'),
+    'difficulty_upscDPSP': ('Data/IP_DPSP.xlsx', 'Indion Polity - DPSP'),
+
     # History
     'difficulty_historyAncient': ('Data/AncientHistory.xlsx', 'Ancient History'),
     'difficulty_historyMedieval': ('Data/MedivalHistory.xlsx', 'Medieval History'),
@@ -50,11 +58,26 @@ DIFFICULTY_MAP = {
     'difficulty_cglGk': ('Data/CGL_GK.xlsx', 'General Awareness'),
     'difficulty_cglEnglish': ('Data/CGL_English.xlsx', 'Englsih'),
     'difficulty_cglReasoning': ('Data/CGL_Reasoning.xlsx', 'Reasoning'),
+
+        #Reasoning
+    'difficulty_syllogism': ('Data/Sylogism.xlsx', 'Syllogism'),
+     'difficulty_NumberAlphabetSeries': ('Data/numberalphabet.xlsx', 'Number and Alphabet Series'),
+      'difficulty_OddOneOut': ('Data/OddOneOut.xlsx', 'Odd One Out'),
 }
+
+def Reasoning_Kb0():
+    return [
+          [InlineKeyboardButton("Odd One Out", callback_data='difficulty_OddOneOut')],
+           [InlineKeyboardButton("Number Alphabet Series", callback_data='difficulty_NumberAlphabetSeries')],
+           [InlineKeyboardButton("Sylogism", callback_data='difficulty_syllogism')],
+           [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')]
+        
+    ]
 
 def StartingSubject0():
     return [
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
+        [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
         [InlineKeyboardButton("History Interesting Topic", callback_data='type_topic0')],
         [InlineKeyboardButton("UPSC", callback_data='type_Upsc')],
         [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
@@ -75,6 +98,7 @@ def Nda_keyboard0():
         [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
+
 
 def Nda_keyboard1():
     return [
@@ -109,6 +133,30 @@ def Topic_Kb1():
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_topic0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic2')],
         
     ]
+
+def Upsc_keyboard0():
+    return [
+        [InlineKeyboardButton("IP-The President", callback_data='difficulty_upscpresident')],
+         [InlineKeyboardButton("GS-Previous Year Paper", callback_data='difficulty_upscpreviousyear')],
+                [InlineKeyboardButton("The Hindu Vocab", callback_data='difficulty_thehindu')],
+                [InlineKeyboardButton("History", callback_data='difficulty_upschistory')],
+                [InlineKeyboardButton("Science Tech", callback_data='difficulty_upscscience')],
+                [InlineKeyboardButton("Revolt of 1857", callback_data='difficulty_upscrevolt1857')],
+                
+        [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc1')],
+    ]  
+
+def Upsc_keyboard1():
+    return [
+         [InlineKeyboardButton("Early Nationalism", callback_data='difficulty_upscearlynationalism')],
+                [InlineKeyboardButton("Struggle for swaraj", callback_data='difficulty_upscstruggleforswaraj')],
+                [InlineKeyboardButton("IP-DPSP", callback_data='difficulty_upscDPSP')],
+                [InlineKeyboardButton("IP-Seperation of Power", callback_data='difficulty_upscseperationofpower')],
+                [InlineKeyboardButton("Union and State Function and Resp", callback_data='difficulty_upscunionandstatefunction')],
+                
+        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc0')],
+    ]  
+
 def Topic_Kb2():
     return [
           [InlineKeyboardButton("Maurya Empire", callback_data='difficulty_Mauryaempire')],
@@ -118,6 +166,8 @@ def Topic_Kb2():
         [InlineKeyboardButton("🏎️  Previous", callback_data='type_topic1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic0')]
         
     ]
+
+
 
 ALLOWED_FILES = {
     "SYNO5",
@@ -156,5 +206,15 @@ ALLOWED_FILES = {
     "Neet_Chemistry",
     "UPSC_GS_2023",
     "Upsc_history",
-    "Upsc_ScienceandTech"
+    "Upsc_ScienceandTech",
+    "IP_DPSP",
+    "IP_FnResp_ofTheUnionandStates",
+    "IP_SeperationofPower",
+    "MH_StruggleofSwaraj",
+    "MH_EarlyNationalism",
+    "MH_TheRevolt",
+    "IP_ThePresident",
+    "OddOneOut",
+    "numberalphabet",
+    "Sylogism",
 }

@@ -1,7 +1,7 @@
 from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest, Forbidden, TimedOut
-from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES, StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
+from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Reasoning_Kb0,Upsc_keyboard0,Upsc_keyboard1, StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
 import os
 import json
 import pandas as pd
@@ -373,16 +373,28 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.edit_message_text(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)   
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)
-        
-        elif query.data == 'type_Upsc':
+        elif query.data == 'type_Upsc1':
             
-            difficulty_keyboard = [
-                [InlineKeyboardButton("GS-Previous Year Paper", callback_data='difficulty_upscpreviousyear')],
-                [InlineKeyboardButton("The Hindu Vocab", callback_data='difficulty_thehindu')],
-                [InlineKeyboardButton("History", callback_data='difficulty_upschistory')],
-                [InlineKeyboardButton("Science Tech", callback_data='difficulty_upscscience')],
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
+            reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard1())
+            
+            try:
+                await query.edit_message_text(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
+                
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
+        elif query.data == 'type_reasoning':
+            
+            reply_markup = reply_markup=InlineKeyboardMarkup(Reasoning_Kb0())
+            
+            try:
+                await query.edit_message_text(f'@{username} Selected Reasoning \n Select the  Quiz type', reply_markup=reply_markup)
+                
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
+        
+        elif query.data == 'type_Upsc0':
+            
+            reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard0())
             
             try:
                 await query.edit_message_text(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
