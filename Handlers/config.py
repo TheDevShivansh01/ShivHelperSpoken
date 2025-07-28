@@ -3,6 +3,7 @@ from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeybo
 DIFFICULTY_MAP = {
     # Grammar
     'difficulty_synonyms': ('Data/SYNO5.xlsx', 'Synonyms'),
+    'difficulty_prepo': ('Data/English_Preposition.xlsx', 'Preposition'),
     'difficulty_antonyms': ('Data/Antonyms5.xlsx', 'Antonyms'),
     'difficulty_spellcorr': ('Data/spellCorrection4old.xlsx', 'Spelling Correction'),
     'difficulty_sentcorr': ('Data/sentenceCorr4.xlsx', 'Sentence Correction'),
@@ -125,6 +126,7 @@ ALLOWED_FILES = {
     "basic_shortidiom",
     "Nda_FillinTheBlanks",
     "Nda_Idiom",
+    "English_Preposition",
     "Nda_OneWord",
     "thehindu",
     "CGL_English",
