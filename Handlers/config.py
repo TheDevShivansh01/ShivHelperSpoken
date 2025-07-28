@@ -79,7 +79,7 @@ def StartingSubject0():
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
         [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
         [InlineKeyboardButton("History Interesting Topic", callback_data='type_topic0')],
-        [InlineKeyboardButton("UPSC", callback_data='type_Upsc')],
+        [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
         [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_startsubj1')]
     ]   
