@@ -551,7 +551,7 @@ async def handle_New_button_click(update: Update, context: ContextTypes.DEFAULT_
             quiz_state.pop(chat_id, None)
             
         username = query.from_user.username or query.from_user.first_name
-        selected_poll_count = 10
+        selected_poll_count = 15
         selected_time_limit = int(new_timer)  # ✅ Make sure THIS line is present
       
         EXCEL_FILE = newuploadedexcelfile
