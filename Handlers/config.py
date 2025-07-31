@@ -48,8 +48,12 @@ DIFFICULTY_MAP = {
     'difficulty_upscearlynationalism': ('Data/MH_EarlyNationalism.xlsx', 'Modern history - Early Nationalism'),
     'difficulty_upscrevolt1857': ('Data/MH_TheRevolt.xlsx', 'Modern history - Revolt of 1857'),
     'difficulty_upscDPSP': ('Data/IP_DPSP.xlsx', 'Indion Polity - DPSP'),
+    'difficulty_judiciarysystem': ('Data/IPJudicialSystem.xlsx', 'Judiciary System'),
+    'difficulty_parliament': ('Data/IPParliament.xlsx', 'Parliament'), 
+    'difficulty_primeminister': ('Data/IPPrimeminister.xlsx', 'Prime Minister'),
 
     # History
+
     'difficulty_historyAncient': ('Data/AncientHistory.xlsx', 'Ancient History'),
     'difficulty_historyMedieval': ('Data/MedivalHistory.xlsx', 'Medieval History'),
     'difficulty_historyModern': ('Data/ModernHistory.xlsx', 'Modern History'),
@@ -154,9 +158,16 @@ def Upsc_keyboard1():
                 [InlineKeyboardButton("IP-Seperation of Power", callback_data='difficulty_upscseperationofpower')],
                 [InlineKeyboardButton("Union and State Function and Resp", callback_data='difficulty_upscunionandstatefunction')],
                 
-        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc0')],
+        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc2')],
     ]  
-
+def Upsc_keyboard2():
+    return [
+         [InlineKeyboardButton("IP- Parliament", callback_data='difficulty_parliament')],
+                [InlineKeyboardButton("IP -Primeminister", callback_data='difficulty_primeminister')],
+                [InlineKeyboardButton("IP-Judiciary System", callback_data='difficulty_judiciarysystem')],
+               
+        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc0')],
+    ] 
 def Topic_Kb2():
     return [
           [InlineKeyboardButton("Maurya Empire", callback_data='difficulty_Mauryaempire')],
@@ -171,6 +182,9 @@ def Topic_Kb2():
 
 ALLOWED_FILES = {
     "SYNO5",
+    "IPJudicialSystem",
+    "IPParliament",
+    "IPPrimeminister",
     "Antonyms5",
     "spellCorrection4",
     "basic_shortidiom",
