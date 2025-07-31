@@ -103,7 +103,6 @@ def Nda_keyboard0():
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
 
-
 def Nda_keyboard1():
     return [
         
