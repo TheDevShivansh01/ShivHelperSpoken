@@ -649,7 +649,9 @@ async def send_quiz_polls(chat_id, polls, context):
                     "responses": {},
                     "poll_message": poll_message
                 })
-
+                if(i==7):
+                    await context.bot.send_message(chat_id, text="\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl")
+                
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
 
@@ -887,7 +889,7 @@ async def calculate_scores(chat_id, context):
         username = escape_markdown(data["username"])  # Removed version=2
         leaderboard += f"{rank}\\) *{username}* \\- `{data['score']} points`\n"
     
-    leaderboard = leaderboard + "\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl   \n Start Quiz again with /startquiz"
+    leaderboard = leaderboard + "\n Start Quiz again with /startquiz"
 
     await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
 
