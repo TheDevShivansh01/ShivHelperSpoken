@@ -25,6 +25,7 @@ SCORE_FILE="UserScore/user_scores.xlsx"
 groupsendid = -1002114430690
 botManagementGroupId =  -1002359766306
 new_timer = 20
+Promotion = False
 final_poll_responses = {}
 
 GROUPS_FILE = "groups.json"
@@ -649,7 +650,7 @@ async def send_quiz_polls(chat_id, polls, context):
                     "responses": {},
                     "poll_message": poll_message
                 })
-                if(i==7):
+                if(i==7 and Promotion):
                     await context.bot.send_message(chat_id, text="\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl")
                 
                 await countdown_and_close_poll(chat_id, poll_message, context)
@@ -1123,7 +1124,8 @@ async def add_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"New timer set to {new_timer}.")
     except ValueError:
         await update.message.reply_text("Invalid input. Please enter a numeric value for the timer.")
-    
+
+
 async def show_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
@@ -1157,6 +1159,23 @@ async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     group_data.setdefault(str(chat_id), {})["link"] = newuploadedexcelfile
     save_group_data()
     await update.message.reply_text("\u2705 Link set for the main group.")
+
+
+async def add_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global newuploadedexcelfile,Promotion
+    chat_id = update.effective_chat.id
+    if chat_id != botManagementGroupId:
+        return
+    msg = context.args[0]
+    if msg.lower() =="yes":
+        Promotion = True
+        await update.message.reply_text("✅ Promotion enabled. You can now send promotional messages in the quiz.")
+        return
+
+    elif msg.lower() == "no":
+        Promotion = False
+        await update.message.reply_text("❌ Promotion disabled. No promotional messages will be sent in the quiz.")
+        return
 
 async def countdown_and_close_poll(chat_id, poll_message, context):
     try:

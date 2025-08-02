@@ -1,5 +1,5 @@
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
-from Handlers.command import TOKEN,botManagementGroupId,MNTH_SCORE_FILE, start_command,start_game_command,help_command,handle_difficulty_selection,handle_type_selection,handle_time_selection,handle_button_click,handle_New_button_click,handle_poll_answer,my_rank
+from Handlers.command import TOKEN,add_promo,botManagementGroupId,MNTH_SCORE_FILE, start_command,start_game_command,help_command,handle_difficulty_selection,handle_type_selection,handle_time_selection,handle_button_click,handle_New_button_click,handle_poll_answer,my_rank
 from Handlers.command import register_group,month_topper,handle_allsizzlescore,topgrp_scorer,all_time_topper,cancel_quiz_command,handle_updatesizzlescore,handle_jsonFile,send_message,add_message,add_time,add_file,show_message,broadcast_message
 from Handlers.common import send_word_of_the_day,scheduled_send_word,shuffle_all_files_inplace,shuffle_command
 import asyncio,datetime,calendar
@@ -52,6 +52,7 @@ def main():
     application.add_handler(CommandHandler("addmessage", add_message))
     application.add_handler(CommandHandler("addtime", add_time))
     application.add_handler(CommandHandler("addfile", add_file))
+    application.add_handler(CommandHandler("addpromo", add_promo))
     application.add_handler(CommandHandler("showmessage", show_message))
     application.add_handler(CommandHandler("brdmessage", broadcast_message))
     application.add_handler(CommandHandler("shuffle", shuffle_command))

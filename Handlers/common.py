@@ -1,4 +1,4 @@
-from Handlers.command import save_group_data,GROUPS_FILE ,groupsendid, save_groups, group_data, registered_groups, botManagementGroupId
+from Handlers.command import save_group_data,Promotion,GROUPS_FILE ,groupsendid, save_groups, group_data, registered_groups, botManagementGroupId
 from telegram import Update,InputFile
 from telegram.ext import  ContextTypes
 from Handlers.config import ALLOWED_FILES
