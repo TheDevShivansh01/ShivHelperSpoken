@@ -36,20 +36,24 @@ if os.path.exists(GROUPS_FILE):
 else:
     registered_groups = set()
 
+
 if os.path.exists(group_data_file):
     with open(group_data_file, "r") as f:
         group_data = json.load(f)
 else:
     group_data = {}
 
+
 def save_groups():
     with open(GROUPS_FILE, "w") as f:
 
         json.dump(list(registered_groups), f)
-    
+
+
 def save_group_data():
     with open(group_data_file, "w") as f:
         json.dump(group_data, f)
+
 
 newuploadedexcelfile = "Data/SYNO5.xlsx"
 quiz_state = {}
@@ -74,6 +78,7 @@ isNewQuizStarted =1
 used_srnos = set()
 difficulty_message = "subject"
 
+
 def get_chat_state(chat_id):
     if chat_id not in quiz_state:
         quiz_state[chat_id] = {
@@ -82,6 +87,7 @@ def get_chat_state(chat_id):
             "correct_users": {},
         }
     return quiz_state[chat_id]
+
 
 def reset_used_srnos():
     global used_srnos
@@ -881,7 +887,7 @@ async def calculate_scores(chat_id, context):
         username = escape_markdown(data["username"])  # Removed version=2
         leaderboard += f"{rank}\\) *{username}* \\- `{data['score']} points`\n"
     
-    leaderboard = leaderboard + "\n Start Quiz again with /startquiz"
+    leaderboard = leaderboard + "\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl   \n Start Quiz again with /startquiz"
 
     await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
 
