@@ -650,11 +650,12 @@ async def send_quiz_polls(chat_id, polls, context):
                     "responses": {},
                     "poll_message": poll_message
                 })
-                if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl")
                 
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
+                if(i==7 and Promotion):
+                    await context.bot.send_message(chat_id, text="\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl")
+                
 
             except BadRequest as e:
                 await context.bot.send_message(chat_id, text="❗ I don't have permission to create polls in this group.\nPlease make me admin or allow 'Create Polls' permission.")
