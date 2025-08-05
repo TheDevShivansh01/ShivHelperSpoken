@@ -204,6 +204,7 @@ ALLOWED_FILES = {
     "BloodRelation",
     "BookWriter",
     "CGL_Reasoning",
+    "CGL_SSC_Synonyms",
     "India_GS",
     "IndianPolity",
     "Indus_Valley",
