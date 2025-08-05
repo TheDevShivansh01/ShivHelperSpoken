@@ -369,7 +369,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             difficulty_keyboard = [
                 
         [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
-                [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms')],
+                [InlineKeyboardButton("Synonyms 2.0", callback_data='difficulty_synonyms')],
                 [InlineKeyboardButton("Preposition", callback_data='difficulty_prepo')],
                 [InlineKeyboardButton("Antonyms", callback_data='difficulty_antonyms')],
                 [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
@@ -423,6 +423,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         elif query.data == 'type_Cgl':
             
             difficulty_keyboard = [
+                [InlineKeyboardButton("PYQ Synonyms", callback_data='difficulty_synonyms')],
                 [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')],
                 [InlineKeyboardButton("English", callback_data='difficulty_cglEnglish')],
                 [InlineKeyboardButton("General Awareness", callback_data='difficulty_cglGk')],
