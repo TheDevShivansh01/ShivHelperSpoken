@@ -34,6 +34,8 @@ DIFFICULTY_MAP = {
     'difficulty_idiomphrase_nda': ('Data/Nda_Idiom.xlsx', 'Idiom Phrase'),
     'difficulty_nda_ows': ('Data/Nda_OneWord.xlsx', 'One word Substitution'),
     'difficulty_nda_antonyms': ('Data/Nda_Antonyms.xlsx', 'Antonyms'),
+     'difficulty_nda_chemistry': ('Data/Nda_Chemistry.xlsx', 'Chemistry'),
+      'difficulty_nda_bio': ('Data/Nda_BIO.xlsx', 'Biology'),
 
     # UPSC
     'difficulty_upscpreviousyear': ('Data/UPSC_GS_2023.xlsx', 'GS-Previous years paper'),
@@ -96,16 +98,17 @@ def StartingSubject1():
     ]   
 def Nda_keyboard0():
     return [
+        [InlineKeyboardButton("Complete Chemsitry", callback_data='difficulty_nda_chemistry')],
+        [InlineKeyboardButton("Complete Biology", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms_nda')],
         [InlineKeyboardButton("Antonyms", callback_data='difficulty_nda_antonyms')],
-        [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
-        [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
 
 def Nda_keyboard1():
     return [
-        
+        [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
+        [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
         [InlineKeyboardButton("Active-passive", callback_data='difficulty_acitvepassive_nda')],
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_NDA0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA2')],
         
@@ -118,12 +121,12 @@ def Nda_keyboard2():
     ]
 def Topic_Kb0():
     return [
+        [InlineKeyboardButton("Complete Chemsitry", callback_data='difficulty_nda_chemistry')],
+        [InlineKeyboardButton("Complete Biology", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Blood Relation", callback_data='difficulty_bloodrelation')],
         [InlineKeyboardButton("World First", callback_data='difficulty_worldtop')],
-        [InlineKeyboardButton("Book - Writer", callback_data='difficulty_bookwriter')],
         [InlineKeyboardButton("Indian Polity", callback_data='difficulty_indianPolity')],
         [InlineKeyboardButton("Indus Valley Civilization", callback_data='difficulty_indusvalley')],
-      
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_topic1')]
     ]        
 
@@ -131,6 +134,7 @@ def Topic_Kb1():
     return [
           [InlineKeyboardButton("Indian Constitution", callback_data='difficulty_IndiaConstitute')],
            [InlineKeyboardButton("About India", callback_data='difficulty_IndiaGs')],
+        [InlineKeyboardButton("Book - Writer", callback_data='difficulty_bookwriter')],
            [InlineKeyboardButton("Art & Culture", callback_data='difficulty_artandculture')],
            [InlineKeyboardButton("Begining of Modern Age", callback_data='difficulty_BgngOfModernAge')],
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_topic0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic2')],

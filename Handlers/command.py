@@ -367,6 +367,8 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         elif query.data == 'type_BASIC':
             
             difficulty_keyboard = [
+                
+        [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
                 [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms')],
                 [InlineKeyboardButton("Preposition", callback_data='difficulty_prepo')],
                 [InlineKeyboardButton("Antonyms", callback_data='difficulty_antonyms')],
