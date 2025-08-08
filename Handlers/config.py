@@ -3,6 +3,7 @@ from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeybo
 DIFFICULTY_MAP = {
     # Grammar
     'difficulty_synonyms': ('Data/CGL_SSC_Synonyms.xlsx', 'Synonyms'),
+    'difficulty_ssc_ows': ('Data/SSC_OneWordSubstitution.xlsx', 'Synonyms'),
     'difficulty_prepo': ('Data/English_Preposition.xlsx', 'Preposition'),
     'difficulty_antonyms': ('Data/Antonyms5.xlsx', 'Antonyms'),
     'difficulty_spellcorr': ('Data/spellCorrection4old.xlsx', 'Spelling Correction'),
@@ -226,6 +227,7 @@ ALLOWED_FILES = {
     "Upsc_history",
     "Upsc_ScienceandTech",
     "IP_DPSP",
+    "SSC_OneWordSubstitution",
     "IP_FnResp_ofTheUnionandStates",
     "IP_SeperationofPower",
     "MH_StruggleofSwaraj",
