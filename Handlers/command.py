@@ -818,7 +818,7 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error in top1grp_scorer: {e}")
 
-def update_user_score(chat_id, correct_users,file):
+async def update_user_score(chat_id, correct_users,file):
     """
     Update user scores in an Excel file. If the user exists in the same chat_id, update their score.
     If the user exists in a different chat_id, create a new row.
@@ -864,7 +864,7 @@ def update_user_score(chat_id, correct_users,file):
         sheet.delete_rows(2, sheet.max_row)
         for (chat_id, user_id), data in existing_scores.items():
             sheet.append([data["sr_no"], chat_id, user_id, data["username"], data["score"], data["round"]])
-        workbook.save(file)
+        await workbook.save(file)
 
     except Exception as e:
         print(f"Error updating scores: {e}")
@@ -877,8 +877,8 @@ async def calculate_scores(chat_id, context):
         await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
         return
 
-    update_user_score(chat_id, quiz_scores[chat_id],SCORE_FILE)
-    update_user_score(chat_id, quiz_scores[chat_id],MNTH_SCORE_FILE)
+    await update_user_score(chat_id, quiz_scores[chat_id],SCORE_FILE)
+    await update_user_score(chat_id, quiz_scores[chat_id],MNTH_SCORE_FILE)
     
     if os.path.exists(SCORE_FILE):
         with open(SCORE_FILE, 'rb') as file:
