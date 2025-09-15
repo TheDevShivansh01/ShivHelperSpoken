@@ -31,7 +31,7 @@ def shuffle_excel_rows_inplace(input_file: str):
     try:
         df = pd.read_excel(input_file)
         chosen_strategy = random.choice(strategies)
-        print(f"🔀 {input_file} — Strategy: {chosen_strategy}")
+        
 
         if chosen_strategy == "reverse":
             shuffled_df = df[::-1].reset_index(drop=True)
@@ -44,7 +44,7 @@ def shuffle_excel_rows_inplace(input_file: str):
             shuffled_df = df.sample(frac=1).reset_index(drop=True)
 
         shuffled_df.to_excel(input_file, index=False)
-        print(f"✅ Overwritten: {input_file}\n")
+        
 
     except Exception as e:
         print(f"❌ Error in {input_file}: {e}")
@@ -80,7 +80,7 @@ def mark_word_as_sent(srno, df):
 async def scheduled_send_word(app):
     class DummyMessage:
         async def reply_text(self, text, parse_mode=None):
-            print(text)
+            print("1")
     class DummyUpdate:
         effective_chat = type('obj', (), {'id': botManagementGroupId})()
         message = DummyMessage()
@@ -131,7 +131,7 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     
 
     message = create_daily_template()
-    print(message)
+    
     to_remove = set()
     for group_id in list(registered_groups):
         try:
@@ -187,7 +187,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     )
 
 def create_daily_template():
-    print("Enter here")
     df = pd.read_excel(Topic_EXCEL_PATH)
 
     unsent_df = df[df["issend"] != 1]

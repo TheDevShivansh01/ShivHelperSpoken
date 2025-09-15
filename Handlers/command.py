@@ -69,7 +69,6 @@ else:
     group_data = {}
 
 def updateandaddgroups():
-    print("Saving registered groups to file.")
     existing_groups = set()
 
     if os.path.exists(RegisteredGroupfile):
@@ -94,19 +93,14 @@ def updateandaddgroups():
     df["srno"] = df.index + 1
 
     df.to_excel(RegisteredGroupfile, index=False)
-    print("Registered groups saved.")
 
 
 def save_groups():
-    print("Saving registered groups to file.")
     if os.path.exists(RegisteredGroupfile):
         df = pd.read_excel(RegisteredGroupfile)
-        print(registered_groups)
         df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
-        print(df)
         df.reset_index(drop=True, inplace=True)
         df.to_excel(RegisteredGroupfile, index=False)
-        print("Registered groups saved.")
 
 
 def save_group_data():
@@ -186,7 +180,6 @@ def load_quiz_data(file_path, selected_poll_count):
 
         unique_rows = df[~df['srno'].isin(used_srnos)]
         if len(unique_rows) < selected_poll_count:
-            print("Not enough unique rows available.")
             selected_poll_count = len(unique_rows)
 
         selected_rows = unique_rows.sample(n=selected_poll_count)
@@ -625,11 +618,9 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         chat_id = query.message.chat_id  # Identify which chat is running the quiz
         username = query.from_user.username or query.from_user.first_name
         if chat_id not in quiz_state:
-            print("enter here 1")
             quiz_state[chat_id] = {"active": False}
 
         if not quiz_state[chat_id]["active"]:
-            print("enter here 2")
             await query.answer("Please start a new quiz with /startquiz")
             return
 
@@ -787,7 +778,6 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         for chat_id, chat_quiz in quiz_state.items():
             if "polls" not in chat_quiz:
-                print(f"No 'polls' key in chat_quiz for chat_id {chat_id}")
                 continue
             for poll in chat_quiz["polls"]:
                 if poll["poll_id"] == answer.poll_id:
@@ -1122,7 +1112,6 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     to_remove = set()
     if chat_id != botManagementGroupId:
         return
-    print("Broadcast command received.",registered_groups)
     if not context.args:
         await update.message.reply_text("❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start.")
         return
@@ -1247,7 +1236,13 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Message sent to {count} groups.")
 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global registered_groups
     chat = update.effective_chat
+    if os.path.exists(RegisteredGroupfile):
+        df = pd.read_excel(RegisteredGroupfile)
+        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
+    else:
+        registered_groups = set()
     if chat.type in ["group", "supergroup"]:
         if chat.id not in registered_groups:
             registered_groups.add(chat.id)
@@ -1315,7 +1310,7 @@ async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     newuploadedexcelfile = " ".join(context.args)
     newuploadedexcelfile = "Data/"+newuploadedexcelfile + ".xlsx"
-    print(newuploadedexcelfile)
+    
 
     group_data.setdefault(str(chat_id), {})["link"] = newuploadedexcelfile
     save_group_data()
