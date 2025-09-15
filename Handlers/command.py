@@ -97,8 +97,11 @@ def updateandaddgroups():
 
 def save_groups():
     global registered_groups
-    df = pd.DataFrame(list(registered_groups), columns=["groupid"])
-    df.to_excel(RegisteredGroupfile, index=False)
+    if os.path.exists(RegisteredGroupfile):
+        df = pd.read_excel(RegisteredGroupfile)
+        df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
+        df.reset_index(drop=True, inplace=True)
+        df.to_excel(RegisteredGroupfile, index=False)
         
     
 def load_groups():
@@ -1092,64 +1095,43 @@ async def all_time_topper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error in all_time_topper: {e}")
 
-def update_last_message_id(group_id, message_id):
+async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global registered_groups
     if not os.path.exists(RegisteredGroupfile):
+        await update.message.reply_text("❗️ No registered groups found.")
         return
 
     df = pd.read_excel(RegisteredGroupfile)
-    group_id = str(group_id)
-
-    if "last_message_id" not in df.columns:
-        df["last_message_id"] = None
-    df.loc[df["groupid"].astype(str) == group_id, "last_message_id"] = str(message_id)
-
-    df.to_excel(RegisteredGroupfile, index=False)
-
-
-async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global registered_groups
-    if os.path.exists(RegisteredGroupfile):
-        print("Loading registered groups from file.")
-        df = pd.read_excel(RegisteredGroupfile)
-        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
-    else:
-        registered_groups = set()
+    registered_groups = set(df["groupid"].dropna().astype(str).tolist())
+    last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
 
     chat_id = update.effective_chat.id
-    main_group_id = str(botManagementGroupId)
-    to_remove = set()
     if chat_id != botManagementGroupId:
         return
     if not context.args:
         await update.message.reply_text("❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start.")
         return
-    message = update.message.text.split(" ", 1)[1] if " " in update.message.text else None
 
+    message = update.message.text.split(" ", 1)[1]
     start_url = "https://t.me/slizzyy_bot?start=start"
     keyboard = [[InlineKeyboardButton("Send Now", url=start_url)]]
 
     async def send_to_group(gid):
         gid_str = str(gid)
         try:
-            if os.path.exists(RegisteredGroupfile):
-                df = pd.read_excel(RegisteredGroupfile)
-                if "last_message_id" in df.columns:
-                    prev = df.loc[df["groupid"].astype(str) == gid_str, "last_message_id"]
-                    if not prev.empty and not pd.isna(prev.values[0]):
-                        previous_id = int(prev.values[0])
-                        try:
-                            await context.bot.delete_message(chat_id=gid, message_id=previous_id)
-                        except Exception as e:
-                            print(f"Failed to delete old message in {gid}: {e}")
+            previous_id = last_message_map.get(gid_str)
+            if previous_id:
+                try:
+                    await context.bot.delete_message(chat_id=gid, message_id=int(previous_id))
+                except Exception as e:
+                    print(f"Failed to delete old message in {gid}: {e}")
 
             sent_msg = await context.bot.send_message(
-            chat_id=gid,
-            text=message,
-            reply_markup=InlineKeyboardMarkup(keyboard)
+                chat_id=gid,
+                text=message,
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
-
-            update_last_message_id(gid, sent_msg.message_id)
-
+            last_message_map[gid_str] = sent_msg.message_id
             return True, gid
         except Exception as e:
             print(f"Error sending to group {gid}: {e}")
@@ -1161,16 +1143,21 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results = await asyncio.gather(*tasks)
 
     count = 0
+    to_remove = set()
     for success, gid in results:
         if success is True:
             count += 1
         elif success is False:
-            to_remove.add(gid)
+            to_remove.add(str(gid))
 
-    if to_remove:
-        registered_groups -= to_remove
-        save_groups()
-    
+    registered_groups -= to_remove
+
+    # ✅ Save once
+    new_df = pd.DataFrame({
+        "groupid": list(registered_groups),
+        "last_message_id": [last_message_map.get(str(gid), None) for gid in registered_groups]
+    })
+    new_df.to_excel(RegisteredGroupfile, index=False)
 
     await update.message.reply_text(f"✅ Custom message sent to {count} groups.")
 
@@ -1245,7 +1232,6 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
-    
     chat = update.effective_chat
 
     chat_id_str = str(chat.id)

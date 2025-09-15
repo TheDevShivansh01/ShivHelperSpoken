@@ -116,13 +116,14 @@ async def schedule_send_UpscTopic(app):
 
 
 async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    topicregistered_groups = set()
     global registered_groups, botManagementGroupId
     if os.path.exists(RegisteredGroupfile):
         df = pd.read_excel(RegisteredGroupfile)
         df_filtered = df[df["isupscmainstopicallowed"] == 1]
-        registered_groups = set(df_filtered["groupid"].dropna().astype(str).tolist())
+        topicregistered_groups = set(df_filtered["groupid"].dropna().astype(str).tolist())
     else:
-        registered_groups = set()
+        topicregistered_groups = set()
 
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
@@ -133,7 +134,7 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     message = create_daily_template()
     
     to_remove = set()
-    for group_id in list(registered_groups):
+    for group_id in list(topicregistered_groups):
         try:
             member = await context.bot.get_chat_member(chat_id=group_id, user_id=context.bot.id)
             if member.status in ['left', 'kicked']:
@@ -157,7 +158,7 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
                 return False, gid
             return None, gid
 
-    tasks = [asyncio.create_task(send_to_group(gid)) for gid in registered_groups]
+    tasks = [asyncio.create_task(send_to_group(gid)) for gid in topicregistered_groups]
     results = await asyncio.gather(*tasks)
 
     for success, gid in results:
@@ -247,11 +248,6 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
 
     global registered_groups, botManagementGroupId
     
-    if os.path.exists(RegisteredGroupfile):
-        df = pd.read_excel(RegisteredGroupfile)
-        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
-    else:
-        registered_groups = set()
 
 
     chat_id = update.effective_chat.id
