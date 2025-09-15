@@ -27,13 +27,37 @@ botManagementGroupId =  -1002359766306
 new_timer = 20
 Promotion = False
 final_poll_responses = {}
-
+RegisteredGroupfile = "UserScore/RegisteredGroups.xlsx"
 GROUPS_FILE = "groups.json"
 group_data_file = "group_data.json"
 
-if os.path.exists(GROUPS_FILE):
-    with open(GROUPS_FILE, "r") as f:
-        registered_groups = set(json.load(f))
+personal_user_file ="/UserScore/PersonalUsers.xlsx"
+
+# Function to ensure Excel file exists
+def ensure_excel_file():
+    if not os.path.exists(personal_user_file):
+        df = pd.DataFrame(columns=["user_id", "username", "first_name", "last_name"])
+        df.to_excel(personal_user_file, index=False)
+
+# Function to add user to Excel if not exist
+def add_personal_user(user):
+    ensure_excel_file()
+    df = pd.read_excel(personal_user_file)
+
+    # Check if user_id already exists
+    if user.id not in df["user_id"].values:
+        new_row = {
+            "user_id": user.id,
+            "username": user.username or "",
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or ""
+        }
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df.to_excel(personal_user_file, index=False)
+
+if os.path.exists(RegisteredGroupfile):
+    df = pd.read_excel(RegisteredGroupfile)
+    registered_groups = set(df["groupid"].dropna().astype(str).tolist())
 else:
     registered_groups = set()
 
@@ -44,11 +68,45 @@ if os.path.exists(group_data_file):
 else:
     group_data = {}
 
+def updateandaddgroups():
+    print("Saving registered groups to file.")
+    existing_groups = set()
+
+    if os.path.exists(RegisteredGroupfile):
+        df = pd.read_excel(RegisteredGroupfile)
+        existing_groups = set(df["groupid"].astype(str).tolist())
+    else:
+        df = pd.DataFrame(columns=["srno", "groupid", "last_message_id", "isupscmainstopicallowed"])
+
+    # Ensure all registered groups are present
+    for gid in registered_groups:
+        if str(gid) not in existing_groups:
+            new_row = {
+                "srno": len(df) + 1,
+                "groupid": str(gid),
+                "last_message_id": None,
+                "isupscmainstopicallowed": 1   # or 0 if you want default
+            }
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+    # Reset srno to be sequential
+    df.reset_index(drop=True, inplace=True)
+    df["srno"] = df.index + 1
+
+    df.to_excel(RegisteredGroupfile, index=False)
+    print("Registered groups saved.")
+
 
 def save_groups():
-    with open(GROUPS_FILE, "w") as f:
-
-        json.dump(list(registered_groups), f)
+    print("Saving registered groups to file.")
+    if os.path.exists(RegisteredGroupfile):
+        df = pd.read_excel(RegisteredGroupfile)
+        print(registered_groups)
+        df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
+        print(df)
+        df.reset_index(drop=True, inplace=True)
+        df.to_excel(RegisteredGroupfile, index=False)
+        print("Registered groups saved.")
 
 
 def save_group_data():
@@ -121,33 +179,58 @@ def load_quiz_data(file_path, selected_poll_count):
     global used_srnos
     try:
         df = pd.read_excel(file_path)
-        
+
+        # Strip whitespace
         for col in df.select_dtypes(include="object").columns:
             df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
-        
+
         unique_rows = df[~df['srno'].isin(used_srnos)]
         if len(unique_rows) < selected_poll_count:
             print("Not enough unique rows available.")
             selected_poll_count = len(unique_rows)
-        
+
         selected_rows = unique_rows.sample(n=selected_poll_count)
         used_srnos.update(selected_rows['srno'].tolist())
-        
+
         polls = []
         for _, row in selected_rows.iterrows():
-            options = [row["option1"], row["option2"], row["option3"], row["option4"]]
-            random.shuffle(options) 
+            truncated_flag = False  # flag if any option/answer is truncated
+
+            # Process options
+            options = []
+            for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
+                if isinstance(opt, str) and len(opt) > 100:
+                    options.append(opt[:100])
+                    truncated_flag = True
+                else:
+                    options.append(opt)
+
+            # Process answer
+            answer = row["answer"]
+            if isinstance(answer, str) and len(answer) > 100:
+                answer = answer[:100]
+                truncated_flag = True
+
+            # Meaning handling
+            meaning = row.get("meaning", "nan")
+            if truncated_flag:
+                meaning = f"{meaning}\n⚠ Option/Answer text reduced due to length limit"
+
+            # Shuffle options
+            random.shuffle(options)
+
             poll = {
-                "question": row["question"],
+                "question": row["question"][:1000],  # safe bound for question
                 "options": options,
-                "correct_answer": row["answer"],
-                "meaning": row.get("meaning", "nan") 
+                "correct_answer": answer,
+                "meaning": meaning
             }
             polls.append(poll)
-            
         return polls
+
     except Exception as e:
         print(e)
+
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -362,19 +445,32 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Topic Phase 3 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-        
+        elif query.data == 'type_BASIC1':
+            
+            difficulty_keyboard = [
+                [InlineKeyboardButton("Fill in the Blanks 2.0", callback_data='difficulty_fillblank_nda')],
+                [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
+                [InlineKeyboardButton("Daily Life Idioms", callback_data='difficulty_shortIdiom')],
+                [InlineKeyboardButton("Sentence Correction", callback_data='difficulty_sentcorr')],
+                [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_BASIC')]
+            ]
+            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
+            
+            try:
+                await query.edit_message_text(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)   
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)
+       
         
         elif query.data == 'type_BASIC':
             
             difficulty_keyboard = [
-                
+                [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],
         [InlineKeyboardButton("One word Substitute 2.0", callback_data='difficulty_ssc_ows')],
                 [InlineKeyboardButton("Synonyms 2.0", callback_data='difficulty_synonyms')],
                 [InlineKeyboardButton("Preposition", callback_data='difficulty_prepo')],
                 [InlineKeyboardButton("Antonyms", callback_data='difficulty_antonyms')],
-                [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
-                [InlineKeyboardButton("Daily Life Idioms", callback_data='difficulty_shortIdiom')],
-                [InlineKeyboardButton("Sentence Correction", callback_data='difficulty_sentcorr')],
+                [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_BASIC1')]
             ]
             reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
             
@@ -871,35 +967,55 @@ async def update_user_score(chat_id, correct_users,file):
 
 async def calculate_scores(chat_id, context):
     global groupsendid
-    if chat_id not in quiz_scores or not quiz_scores[chat_id]:
-        quiz_state.pop(chat_id, None)
-        quiz_scores.pop(chat_id, None)
-        await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
-        return
+    try:
+        if chat_id not in quiz_state or "polls" not in quiz_state[chat_id]:
+            await context.bot.send_message(chat_id, "No quiz data found.")
+            return
 
-    await update_user_score(chat_id, quiz_scores[chat_id],SCORE_FILE)
-    await update_user_score(chat_id, quiz_scores[chat_id],MNTH_SCORE_FILE)
-    
-    if os.path.exists(SCORE_FILE):
+        total_polls = len(quiz_state[chat_id]["polls"])
+        if total_polls == 0:
+            await context.bot.send_message(chat_id, "No polls were conducted.")
+            return
+
+        await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
+
+        await asyncio.sleep(2)
+        if chat_id not in quiz_scores or not quiz_scores[chat_id]:
+            quiz_state.pop(chat_id, None)
+            quiz_scores.pop(chat_id, None)
+            await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
+            return
+
+
+        await context.bot.send_message(chat_id, "✨ Quiz results are calculating... ⏳📊 \n\n Wait for a Minute", parse_mode="MarkdownV2")
         with open(SCORE_FILE, 'rb') as file:
             await context.bot.send_document(chat_id=groupsendid, document=file)
-    if os.path.exists(MNTH_SCORE_FILE):
         with open(MNTH_SCORE_FILE, 'rb') as file:
             await context.bot.send_document(chat_id=groupsendid, document=file)
-    sorted_scores = sorted(quiz_scores[chat_id].items(), key=lambda x: x[1]["score"], reverse=True)
-
-    leaderboard = f"🏆 *Quiz Results* 🏆\n\n"
-
-    for rank, (user_id, data) in enumerate(sorted_scores, start=1):
-        username = escape_markdown(data["username"])  # Removed version=2
-        leaderboard += f"{rank}\\) *{username}* \\- `{data['score']} points`\n"
     
-    leaderboard = leaderboard + "\n Start Quiz again with /startquiz"
+    
+        await update_user_score(chat_id, quiz_scores[chat_id],SCORE_FILE)
+        await update_user_score(chat_id, quiz_scores[chat_id],MNTH_SCORE_FILE)
+        sorted_scores = sorted(quiz_scores[chat_id].items(), key=lambda x: x[1]["score"], reverse=True)
 
-    await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
+        leaderboard = f"🏆 *Quiz Results* 🏆\n\n"
 
-    quiz_state.pop(chat_id, None)
-    quiz_scores.pop(chat_id, None)
+        for rank, (user_id, data) in enumerate(sorted_scores, start=1):
+            username = escape_markdown(data["username"])  # Removed version=2
+            leaderboard += f"{rank}\\) *{username}* \\- `{data['score']} points`\n"
+    
+        leaderboard = leaderboard + "\n Start Quiz again with /startquiz"
+
+        await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
+
+        quiz_state.pop(chat_id, None)
+        quiz_scores.pop(chat_id, None)
+    except Exception as e:
+        quiz_state.pop(chat_id, None)
+        quiz_scores.pop(chat_id, None)
+        msg = "An error occurred while calculating scores. Please try again."
+        await context.bot.send_message(chat_id, msg, parse_mode="MarkdownV2")
+        await context.bot.send_message(groupsendid,"Error occured: "+ e, parse_mode="MarkdownV2")
   
 def escape_markdown(text):
     """Escape special characters for Telegram MarkdownV2."""
@@ -978,42 +1094,65 @@ async def all_time_topper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error in all_time_topper: {e}")
 
+def update_last_message_id(group_id, message_id):
+    if not os.path.exists(RegisteredGroupfile):
+        return
+
+    df = pd.read_excel(RegisteredGroupfile)
+    group_id = str(group_id)
+
+    if "last_message_id" not in df.columns:
+        df["last_message_id"] = None
+    df.loc[df["groupid"].astype(str) == group_id, "last_message_id"] = str(message_id)
+
+    df.to_excel(RegisteredGroupfile, index=False)
+
+
 async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
+    if os.path.exists(RegisteredGroupfile):
+        print("Loading registered groups from file.")
+        df = pd.read_excel(RegisteredGroupfile)
+        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
+    else:
+        registered_groups = set()
 
     chat_id = update.effective_chat.id
     main_group_id = str(botManagementGroupId)
     to_remove = set()
-
     if chat_id != botManagementGroupId:
         return
-
+    print("Broadcast command received.",registered_groups)
     if not context.args:
-        await update.message.reply_text("❗ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start.")
+        await update.message.reply_text("❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start.")
         return
+    message = update.message.text.split(" ", 1)[1] if " " in update.message.text else None
 
-    message = " ".join(context.args)
-
-    # Replace with your actual bot username
     start_url = "https://t.me/slizzyy_bot?start=start"
     keyboard = [[InlineKeyboardButton("Send Now", url=start_url)]]
 
     async def send_to_group(gid):
         gid_str = str(gid)
         try:
-            previous_id = group_data.get(gid_str, {}).get("last_message_id")
-            if previous_id:
-                try:
-                    await context.bot.delete_message(chat_id=gid, message_id=previous_id)
-                except Exception as e:
-                    print(f"Failed to delete old message in {gid}: {e}")
+            if os.path.exists(RegisteredGroupfile):
+                df = pd.read_excel(RegisteredGroupfile)
+                if "last_message_id" in df.columns:
+                    prev = df.loc[df["groupid"].astype(str) == gid_str, "last_message_id"]
+                    if not prev.empty and not pd.isna(prev.values[0]):
+                        previous_id = int(prev.values[0])
+                        try:
+                            await context.bot.delete_message(chat_id=gid, message_id=previous_id)
+                        except Exception as e:
+                            print(f"Failed to delete old message in {gid}: {e}")
 
             sent_msg = await context.bot.send_message(
-                chat_id=gid,
-                text=message,
-                reply_markup=InlineKeyboardMarkup(keyboard)
+            chat_id=gid,
+            text=message,
+            reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            group_data.setdefault(gid_str, {})["last_message_id"] = sent_msg.message_id
+
+            update_last_message_id(gid, sent_msg.message_id)
+
             return True, gid
         except Exception as e:
             print(f"Error sending to group {gid}: {e}")
@@ -1034,20 +1173,23 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if to_remove:
         registered_groups -= to_remove
         save_groups()
-    save_group_data()
+    
 
     await update.message.reply_text(f"✅ Custom message sent to {count} groups.")
 
+    
 async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     global registered_groups
+
     if chat_id != botManagementGroupId:
         return
+
     main_group_id = str(botManagementGroupId)
     to_remove = set()
 
     if main_group_id not in group_data:
-        await update.message.reply_text("\u274c No message/link set in main group.")
+        await update.message.reply_text("❌ No message/link set in main group.")
         return
 
     message = group_data[main_group_id].get("message", "")
@@ -1056,18 +1198,30 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def send_to_group(gid):
         gid_str = str(gid)
         try:
-            previous_id = group_data.get(gid_str, {}).get("last_message_id")
+            # ✅ Read previous last_message_id from Excel
+            previous_id = None
+            if os.path.exists(RegisteredGroupfile):
+                df = pd.read_excel(RegisteredGroupfile)
+                if "last_message_id" in df.columns:
+                    prev = df.loc[df["groupid"].astype(str) == gid_str, "last_message_id"]
+                    if not prev.empty and not pd.isna(prev.values[0]):
+                        previous_id = int(prev.values[0])
+
             if previous_id:
                 try:
                     await context.bot.delete_message(chat_id=gid, message_id=previous_id)
                 except Exception as e:
                     print(f"Failed to delete old message in {gid}: {e}")
+
             sent_msg = await context.bot.send_message(
                 chat_id=gid,
                 text=message,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-            group_data.setdefault(gid_str, {})["last_message_id"] = sent_msg.message_id
+
+            # ✅ Save new last_message_id in Excel
+            update_last_message_id(gid, sent_msg.message_id)
+
             return True, gid
         except Exception as e:
             print(e)
@@ -1089,9 +1243,8 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if to_remove:
         registered_groups -= to_remove
         save_groups()
-    save_group_data()
 
-    await update.message.reply_text(f"\u2705 Message sent to {count} groups.")
+    await update.message.reply_text(f"✅ Message sent to {count} groups.")
 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -1099,9 +1252,13 @@ async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if chat.id not in registered_groups:
             registered_groups.add(chat.id)
             save_groups()
-            if os.path.exists(GROUPS_FILE):
-                with open(GROUPS_FILE, 'rb') as file:
+            if os.path.exists(RegisteredGroupfile):
+                with open(RegisteredGroupfile, 'rb') as file:
                     await context.bot.send_document(chat_id=groupsendid, document=file)
+      # Personal Chat handling (new)
+    elif chat.type in ["private", "personal"]:
+        user = update.effective_user
+        add_personal_user(user)
             
 async def add_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -1227,14 +1384,19 @@ async def handle_jsonFile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             downloaded_path = await file.download_to_drive()
 
             # Replace existing userscore.xlsx
-            if os.path.exists(GROUPS_FILE):
-                os.remove(GROUPS_FILE)
+            if os.path.exists(RegisteredGroupfile):
+                print("Score 1.")
+                os.remove(RegisteredGroupfile)
 
-            os.rename(downloaded_path, GROUPS_FILE)
+            os.rename(downloaded_path, RegisteredGroupfile)
             
-            if os.path.exists(GROUPS_FILE):
-                with open(GROUPS_FILE, "r") as f:
-                    registered_groups = set(json.load(f))
+            if os.path.exists(RegisteredGroupfile):
+                df = pd.read_excel(RegisteredGroupfile)
+                registered_groups = set(df["groupid"].dropna().astype(str).tolist())
+            else:
+                registered_groups = set()
+            
+            updateandaddgroups()
             await update.message.reply_text("✅ Score file updated successfully.")
         except Exception as e:
             await update.message.reply_text(f"❌ Failed to update score file:\n`{e}`", parse_mode="Markdown")
