@@ -96,11 +96,15 @@ def updateandaddgroups():
 
 
 def save_groups():
+    global registered_groups
     if os.path.exists(RegisteredGroupfile):
         df = pd.read_excel(RegisteredGroupfile)
         df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
         df.reset_index(drop=True, inplace=True)
         df.to_excel(RegisteredGroupfile, index=False)
+        tdf = pd.read_excel(RegisteredGroupfile)
+        registered_groups = set(tdf["groupid"].dropna().astype(str).tolist())
+    
 
 
 def save_group_data():
@@ -1238,11 +1242,6 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
     chat = update.effective_chat
-    if os.path.exists(RegisteredGroupfile):
-        df = pd.read_excel(RegisteredGroupfile)
-        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
-    else:
-        registered_groups = set()
     if chat.type in ["group", "supergroup"]:
         if chat.id not in registered_groups:
             registered_groups.add(chat.id)
