@@ -97,14 +97,18 @@ def updateandaddgroups():
 
 def save_groups():
     global registered_groups
+    df = pd.DataFrame(list(registered_groups), columns=["groupid"])
+    df.to_excel(RegisteredGroupfile, index=False)
+        
+    
+def load_groups():
+    global registered_groups
     if os.path.exists(RegisteredGroupfile):
         df = pd.read_excel(RegisteredGroupfile)
-        df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
-        df.reset_index(drop=True, inplace=True)
-        df.to_excel(RegisteredGroupfile, index=False)
-        tdf = pd.read_excel(RegisteredGroupfile)
-        registered_groups = set(tdf["groupid"].dropna().astype(str).tolist())
-    
+        registered_groups = set(df["groupid"].dropna().astype(str).tolist())
+    else:
+        registered_groups = set()
+
 
 
 def save_group_data():
@@ -1241,19 +1245,30 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
+    
     chat = update.effective_chat
+
+    chat_id_str = str(chat.id)
+
+    
+
     if chat.type in ["group", "supergroup"]:
-        if chat.id not in registered_groups:
+        if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
             save_groups()
+            print(f"✅ Registered new group: {chat.title} ({chat.id})")
+
             if os.path.exists(RegisteredGroupfile):
                 with open(RegisteredGroupfile, 'rb') as file:
                     await context.bot.send_document(chat_id=groupsendid, document=file)
-      # Personal Chat handling (new)
-    elif chat.type in ["private", "personal"]:
+        else:
+            print(f"ℹ️ Group already registered")
+
+    elif chat.type == "private":  # no need for "personal" (Telegram doesn't use that)
         user = update.effective_user
         add_personal_user(user)
-            
+        print(f"✅ Registered personal user: {user.first_name} ({user.id})")
+           
 async def add_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
