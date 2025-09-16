@@ -133,19 +133,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
 
     message = create_daily_template()
     
-    to_remove = set()
-    for group_id in list(topicregistered_groups):
-        try:
-            member = await context.bot.get_chat_member(chat_id=group_id, user_id=context.bot.id)
-            if member.status in ['left', 'kicked']:
-                to_remove.add(group_id)
-        except (Forbidden, BadRequest):
-            to_remove.add(group_id)
-        except Exception as e:
-            print(f"Error checking group {group_id}: {e}")
-
-    for group_id in to_remove:
-        registered_groups.discard(group_id)
 
     count = 0
     async def send_to_group(gid):
@@ -164,14 +151,9 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     for success, gid in results:
         if success is True:
             count += 1
-        elif success is False:
-            to_remove.add(gid)
-
-    registered_groups -= to_remove
     save_groups()
     save_group_data()
 
-    
     try:
         with open(Topic_EXCEL_PATH, 'rb') as f:
             await context.bot.send_document(
