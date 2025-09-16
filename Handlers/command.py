@@ -1168,39 +1168,38 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = group_data[main_group_id].get("message", "")
     keyboard = [[InlineKeyboardButton("Start Quiz", callback_data='New_1')]]
 
+    # Load Excel once
+    df = pd.DataFrame()
+    if os.path.exists(RegisteredGroupfile):
+        df = pd.read_excel(RegisteredGroupfile)
+    last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
+
     async def send_to_group(gid):
         gid_str = str(gid)
         try:
-            # ✅ Read previous last_message_id from Excel
-            previous_id = None
-            if os.path.exists(RegisteredGroupfile):
-                df = pd.read_excel(RegisteredGroupfile)
-                if "last_message_id" in df.columns:
-                    prev = df.loc[df["groupid"].astype(str) == gid_str, "last_message_id"]
-                    if not prev.empty and not pd.isna(prev.values[0]):
-                        previous_id = int(prev.values[0])
-
-            if previous_id:
+            # ✅ Delete old message if exists
+            previous_id = last_message_map.get(gid_str)
+            if previous_id and not pd.isna(previous_id):
                 try:
-                    await context.bot.delete_message(chat_id=gid, message_id=previous_id)
+                    await context.bot.delete_message(chat_id=gid, message_id=int(previous_id))
                 except Exception as e:
                     print(f"Failed to delete old message in {gid}: {e}")
 
+            # ✅ Send new message
             sent_msg = await context.bot.send_message(
                 chat_id=gid,
                 text=message,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-            # ✅ Save new last_message_id in Excel
-            update_last_message_id(gid, sent_msg.message_id)
-
+            # ✅ Update map with new last_message_id
+            last_message_map[gid_str] = sent_msg.message_id
             return True, gid
         except Exception as e:
-            print(e)
+            print(f"Error sending to {gid}: {e}")
             if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
                 return False, gid
-            return None, gid  # some other error
+            return None, gid
 
     # Schedule all tasks
     tasks = [asyncio.create_task(send_to_group(gid)) for gid in registered_groups]
@@ -1213,11 +1212,19 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif success is False:
             to_remove.add(gid)
 
+    # ✅ Remove dead groups
     if to_remove:
         registered_groups -= to_remove
-        save_groups()
+
+    # ✅ Save updated Excel with last_message_id
+    new_df = pd.DataFrame({
+        "groupid": list(registered_groups),
+        "last_message_id": [last_message_map.get(str(gid), None) for gid in registered_groups]
+    })
+    new_df.to_excel(RegisteredGroupfile, index=False)
 
     await update.message.reply_text(f"✅ Message sent to {count} groups.")
+
 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
@@ -1231,18 +1238,15 @@ async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
             save_groups()
-            print(f"✅ Registered new group: {chat.title} ({chat.id})")
-
             if os.path.exists(RegisteredGroupfile):
                 with open(RegisteredGroupfile, 'rb') as file:
                     await context.bot.send_document(chat_id=groupsendid, document=file)
-        else:
-            print(f"ℹ️ Group already registered")
+        
+        
 
     elif chat.type == "private":  # no need for "personal" (Telegram doesn't use that)
         user = update.effective_user
         add_personal_user(user)
-        print(f"✅ Registered personal user: {user.first_name} ({user.id})")
            
 async def add_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
