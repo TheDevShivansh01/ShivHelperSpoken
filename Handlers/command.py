@@ -31,7 +31,7 @@ RegisteredGroupfile = "UserScore/RegisteredGroups.xlsx"
 GROUPS_FILE = "groups.json"
 group_data_file = "group_data.json"
 
-personal_user_file ="/UserScore/PersonalUsers.xlsx"
+personal_user_file ="UserScore/PersonalUsers.xlsx"
 
 # Function to ensure Excel file exists
 def ensure_excel_file():
@@ -243,6 +243,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: https://t.me/+BIGWj3dm7vA1NTNl")
         await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
         return
+    
     await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1247,6 +1248,9 @@ async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif chat.type == "private":  # no need for "personal" (Telegram doesn't use that)
         user = update.effective_user
         add_personal_user(user)
+        if os.path.exists(personal_user_file):
+                with open(personal_user_file, 'rb') as file:
+                    await context.bot.send_document(chat_id=groupsendid, document=file)
            
 async def add_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id

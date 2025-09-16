@@ -8,7 +8,7 @@ import os, random
 from telegram.error import Forbidden, BadRequest
 
 WordoftheDay_excel_PATH = "UserScore/wordoftheday.xlsx"
-Topic_EXCEL_PATH = "USerScore/gs1.xlsx"
+Topic_EXCEL_PATH = "UserScore/gs1.xlsx"
 
 WORD_OF_THE_DAY_TEMPLATE = """
 📚 *Word of the Day* 📚
