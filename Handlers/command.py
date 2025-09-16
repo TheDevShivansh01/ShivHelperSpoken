@@ -24,6 +24,7 @@ MNTH_SCORE_FILE="UserScore/MonthlyUserScore.xlsx"
 SCORE_FILE="UserScore/user_scores.xlsx"
 groupsendid = -1002114430690
 botManagementGroupId =  -1002359766306
+CHANNEL_ID = "-1002234035497"
 new_timer = 20
 Promotion = False
 final_poll_responses = {}
@@ -239,12 +240,24 @@ def load_quiz_data(file_path, selected_poll_count):
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     chat = update.effective_chat
+    user_id = update.effective_user.id
+
     if chat.type not in ["group", "supergroup"]:
-        await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: https://t.me/+BIGWj3dm7vA1NTNl")
+        try:
+            member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
+
+            if member.status in ["member", "administrator", "creator"]:
+                await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startquiz to start the quizzes.")
+            else:
+                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: sizzlehub")
+                await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
+        except Exception as e:
+            print(f"Error checking membership: {e}")
+            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: sizzlehub")
+            await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
+    else:
+        # In group chats
         await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
-        return
-    
-    await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -761,7 +774,7 @@ async def send_quiz_polls(chat_id, polls, context):
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
                 if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: https://t.me/+BIGWj3dm7vA1NTNl")
+                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: sizzlehub")
                 
 
             except BadRequest as e:
@@ -995,7 +1008,7 @@ async def calculate_scores(chat_id, context):
         for rank, row in enumerate(df.itertuples(), start=1):
             leaderboard += f"{rank}\\) *{escape_markdown(row.username)}* \\- `{row.score} points`\n"
 
-        leaderboard += "\nStart Quiz again with /startquiz"
+        leaderboard += "\nsupport us: @sizzlehub \nStart Quiz again with /startquiz "
 
         await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
 

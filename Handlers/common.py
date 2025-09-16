@@ -125,8 +125,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     else:
         topicregistered_groups = set()
 
-    await context.bot.send_message( chat_id=botManagementGroupId,text=f"✅ enter here list of {topicregistered_groups} group")
-    
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
         return  
@@ -134,8 +132,7 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     
 
     message = create_daily_template()
-    await context.bot.send_message( chat_id=botManagementGroupId,text=f"✅ enter here list of {message} group")
-    
+   
 
     count = 0
     async def send_to_group(gid):
@@ -143,11 +140,9 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
             await context.bot.send_message(chat_id=gid, text=message, parse_mode="Markdown")
             return True, gid
         except Exception as e:
-            print(f"Error sending to {gid}: {e}")
-            await context.bot.send_message( chat_id=botManagementGroupId,text=f"enter here list")
             if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
                 return False, gid
-            return None, gid
+            return None, gid     
 
     tasks = [asyncio.create_task(send_to_group(gid)) for gid in topicregistered_groups]
     results = await asyncio.gather(*tasks)
@@ -155,7 +150,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     for success, gid in results:
         if success is True:
             count += 1
-    await context.bot.send_message( chat_id=botManagementGroupId,text=f"qwertyuiop")
     try:
         with open(Topic_EXCEL_PATH, 'rb') as f:
             await context.bot.send_document(
