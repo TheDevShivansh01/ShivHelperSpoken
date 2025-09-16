@@ -238,6 +238,11 @@ def load_quiz_data(file_path, selected_poll_count):
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
+    chat = update.effective_chat
+    if chat.type not in ["group", "supergroup"]:
+        await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: https://t.me/+BIGWj3dm7vA1NTNl")
+        await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
+        return
     await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -755,7 +760,7 @@ async def send_quiz_polls(chat_id, polls, context):
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
                 if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nGet All Quiz With topics: https://t.me/+BIGWj3dm7vA1NTNl")
+                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: https://t.me/+BIGWj3dm7vA1NTNl")
                 
 
             except BadRequest as e:
@@ -914,54 +919,40 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         print(f"Error in top1grp_scorer: {e}")
-
-async def update_user_score(chat_id, correct_users,file):
+async def update_user_score(chat_id, correct_users, file):
     """
-    Update user scores in an Excel file. If the user exists in the same chat_id, update their score.
-    If the user exists in a different chat_id, create a new row.
+    Optimized: Update user scores in Excel using Pandas (much faster).
     """
     try:
         game_round = 1
-        try:
-            workbook = load_workbook(file)
-            sheet = workbook.active
-        except FileNotFoundError:
-            workbook = Workbook()
-            sheet = workbook.active
-            sheet.title = "Scores"
-            sheet.append(["srno", "chatid", "Idnumber", "Username", "Score", "round"])
-        existing_scores = {}
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row and len(row) >= 6:  # Ensure row has all required columns
-                sr_no, existing_chat_id, user_id, username, score, round = row
-                existing_scores[(str(existing_chat_id), str(user_id))] = {
-                    "sr_no": sr_no,
-                    "chat_id": str(existing_chat_id),
-                    "username": username,
-                    "score": int(score),
-                    "round": int(round)
-                }
+
+        # Load existing file or create new DataFrame
+        if os.path.exists(file):
+            df = pd.read_excel(file)
+        else:
+            df = pd.DataFrame(columns=["srno", "chatid", "Idnumber", "Username", "Score", "round"])
+
+        # Ensure types
+        df["chatid"] = df["chatid"].astype(str)
+        df["Idnumber"] = df["Idnumber"].astype(str)
+
+        # Update scores
         for user_id, data in correct_users.items():
             username = data["username"]
             new_score = data["score"]
-            key = (str(chat_id), str(user_id))
-            if key in existing_scores:
-                existing_scores[key]["username"] = username
-                existing_scores[key]["score"] += new_score
-                existing_scores[key]["round"] += game_round
+
+            mask = (df["chatid"] == str(chat_id)) & (df["Idnumber"] == str(user_id))
+
+            if mask.any():
+                df.loc[mask, "Username"] = username
+                df.loc[mask, "Score"] = df.loc[mask, "Score"].astype(int) + new_score
+                df.loc[mask, "round"] = df.loc[mask, "round"].astype(int) + game_round
             else:
-                sr_no = len(existing_scores) + 1
-                existing_scores[key] = {
-                    "sr_no": sr_no,
-                    "chat_id": str(chat_id),
-                    "username": username,
-                    "score": new_score,
-                    "round": game_round
-                }
-        sheet.delete_rows(2, sheet.max_row)
-        for (chat_id, user_id), data in existing_scores.items():
-            sheet.append([data["sr_no"], chat_id, user_id, data["username"], data["score"], data["round"]])
-        await workbook.save(file)
+                sr_no = len(df) + 1
+                df.loc[len(df)] = [sr_no, str(chat_id), str(user_id), username, new_score, game_round]
+
+        # Save back once
+        df.to_excel(file, index=False)
 
     except Exception as e:
         print(f"Error updating scores: {e}")
@@ -980,44 +971,42 @@ async def calculate_scores(chat_id, context):
 
         await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
 
-        await asyncio.sleep(2)
         if chat_id not in quiz_scores or not quiz_scores[chat_id]:
             quiz_state.pop(chat_id, None)
             quiz_scores.pop(chat_id, None)
             await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
             return
 
+        await update_user_score(chat_id, quiz_scores[chat_id], SCORE_FILE)
+        await update_user_score(chat_id, quiz_scores[chat_id], MNTH_SCORE_FILE)
 
-        await context.bot.send_message(chat_id, "✨ Quiz results are calculating... ⏳📊 \n\n Wait for a Minute", parse_mode="MarkdownV2")
-        with open(SCORE_FILE, 'rb') as file:
-            await context.bot.send_document(chat_id=groupsendid, document=file)
-        with open(MNTH_SCORE_FILE, 'rb') as file:
-            await context.bot.send_document(chat_id=groupsendid, document=file)
-    
-    
-        await update_user_score(chat_id, quiz_scores[chat_id],SCORE_FILE)
-        await update_user_score(chat_id, quiz_scores[chat_id],MNTH_SCORE_FILE)
-        sorted_scores = sorted(quiz_scores[chat_id].items(), key=lambda x: x[1]["score"], reverse=True)
+        # Upload once after saving
+        for file in [SCORE_FILE, MNTH_SCORE_FILE]:
+            if os.path.exists(file):
+                with open(file, "rb") as f:
+                    await context.bot.send_document(chat_id=groupsendid, document=f)
 
-        leaderboard = f"🏆 *Quiz Results* 🏆\n\n"
+        # Sort results fast
+        df = pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index")
+        df = df.sort_values(by="score", ascending=False)
 
-        for rank, (user_id, data) in enumerate(sorted_scores, start=1):
-            username = escape_markdown(data["username"])  # Removed version=2
-            leaderboard += f"{rank}\\) *{username}* \\- `{data['score']} points`\n"
-    
-        leaderboard = leaderboard + "\n Start Quiz again with /startquiz"
+        leaderboard = "🏆 *Quiz Results* 🏆\n\n"
+        for rank, row in enumerate(df.itertuples(), start=1):
+            leaderboard += f"{rank}\\) *{escape_markdown(row.username)}* \\- `{row.score} points`\n"
+
+        leaderboard += "\nStart Quiz again with /startquiz"
 
         await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
 
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
+
     except Exception as e:
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
-        msg = "An error occurred while calculating scores. Please try again."
-        await context.bot.send_message(chat_id, msg, parse_mode="MarkdownV2")
-        await context.bot.send_message(groupsendid,"Error occured: "+ e, parse_mode="MarkdownV2")
-  
+        await context.bot.send_message(chat_id, "⚠️ Error while calculating scores.")
+        await context.bot.send_message(groupsendid, f"Error occured: {e}")
+
 def escape_markdown(text):
     """Escape special characters for Telegram MarkdownV2."""
     escape_chars = r"_*[]()~`>#+-=|{}.!\\"
@@ -1380,7 +1369,6 @@ async def handle_jsonFile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Replace existing userscore.xlsx
             if os.path.exists(RegisteredGroupfile):
-                print("Score 1.")
                 os.remove(RegisteredGroupfile)
 
             os.rename(downloaded_path, RegisteredGroupfile)

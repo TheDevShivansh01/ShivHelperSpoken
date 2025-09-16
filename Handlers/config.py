@@ -193,7 +193,7 @@ def Topic_Kb2():
 
 
 ALLOWED_FILES = {
-    "SYNO5", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection4","basic_shortidiom",
+    "SYNO5","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection4","basic_shortidiom",
     "Nda_FillinTheBlanks","Nda_Idiom","English_Preposition","Nda_OneWord","thehindu","CGL_English","CGL_GK","AncientHistory",
     "MedivalHistory","ModernHistory","BloodRelation","BookWriter","CGL_Reasoning","CGL_SSC_Synonyms","India_GS","IndianPolity",
     "Indus_Valley","ArtandCulture","BeginingOfModernAge","IndianConstitution","mauryaEmpire","PreMauryaPeriod","SangamPeriod",

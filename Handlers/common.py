@@ -316,7 +316,17 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
     f"✅ Word of the Day sent to {count} groups: *{word_data['word']}*",
     parse_mode="Markdown"
     )
+async def is_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check if the user is admin/creator in the group."""
+    chat = update.effective_chat
+    user = update.effective_user
 
+    try:
+        member = await context.bot.get_chat_member(chat.id, user.id)
+        return member.status in ["administrator", "creator"]
+    except BadRequest:
+        return False
+    
 async def allowupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
 
@@ -324,7 +334,9 @@ async def allowupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TY
     if chat.type not in ["group", "supergroup"]:
         await update.message.reply_text("This command can only be used in groups.")
         return
-
+    if not await is_user_admin(update, context):
+        await update.message.reply_text("❌ Only group admins can allow UPSC topics.")
+        return
     chat_id = str(chat.id)
 
     if os.path.exists(RegisteredGroupfile):
@@ -336,7 +348,7 @@ async def allowupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TY
         if chat_id in df["groupid"].values:
             df.loc[df["groupid"] == chat_id, "isupscmainstopicallowed"] = 1
             df.to_excel(RegisteredGroupfile, index=False)
-            await update.message.reply_text("✅ UPSC main topic allowed for this group.")
+            await update.message.reply_text("✅ UPSC Mains topic allowed for this group.")
         else:
             # Add new entry if not present
             new_row = {
@@ -347,7 +359,7 @@ async def allowupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TY
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
             df.to_excel(RegisteredGroupfile, index=False)
-            await update.message.reply_text("✅ Group registered and UPSC main topic allowed.")
+            await update.message.reply_text("✅ Group registered and UPSC Mains topic allowed.")
     else:
         # Create new file if it doesn't exist
         df = pd.DataFrame([{
@@ -357,7 +369,7 @@ async def allowupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TY
             "isupscmainstopicallowed": 1
         }])
         df.to_excel(RegisteredGroupfile, index=False)
-        await update.message.reply_text("✅ New file created and UPSC main topic allowed for this group.")
+        await update.message.reply_text("✅ New file created and UPSC Mains topic allowed for this group.")
 
 async def stopupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -366,7 +378,9 @@ async def stopupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TYP
     if chat.type not in ["group", "supergroup"]:
         await update.message.reply_text("This command can only be used in groups.")
         return
-
+    if not await is_user_admin(update, context):
+        await update.message.reply_text("❌ Only group admins can Stop UPSC topics.")
+        return
     chat_id = str(chat.id)
 
     if os.path.exists(RegisteredGroupfile):
@@ -379,8 +393,8 @@ async def stopupsctopicCommand(update: Update, context: ContextTypes.DEFAULT_TYP
             # Set column to NULL (NaN in pandas)
             df.loc[df["groupid"] == chat_id, "isupscmainstopicallowed"] = pd.NA
             df.to_excel(RegisteredGroupfile, index=False)
-            await update.message.reply_text("⛔ UPSC main topic stopped for this group.")
+            await update.message.reply_text("⛔ UPSC Mains topic stopped for this group.")
         else:
             await update.message.reply_text("❌ This group is not registered.")
     else:
-        await update.message.reply_text("❌ Registered group file not found.")
+        await update.message.reply_text("❌ Complain about this to bot owner")
