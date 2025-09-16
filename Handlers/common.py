@@ -100,7 +100,7 @@ async def schedule_send_UpscTopic(app):
     
     class DummyMessage:
         async def reply_text(self, text, parse_mode=None):
-            print(text)
+            print("hi")
     class DummyUpdate:
         effective_chat = type('obj', (), {'id': botManagementGroupId})()
         message = DummyMessage()
@@ -124,7 +124,10 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
         topicregistered_groups = set(df_filtered["groupid"].dropna().astype(str).tolist())
     else:
         topicregistered_groups = set()
-
+    await context.bot.send_message( chat_id=botManagementGroupId,
+    text=
+    f"✅ enter here list of {topicregistered_groups} group"
+    )
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
         return  
@@ -151,8 +154,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     for success, gid in results:
         if success is True:
             count += 1
-    save_groups()
-    save_group_data()
 
     try:
         with open(Topic_EXCEL_PATH, 'rb') as f:

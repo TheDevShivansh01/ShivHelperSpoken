@@ -12,6 +12,7 @@ def schedule_send_word_job(app, loop):
     asyncio.run_coroutine_threadsafe(scheduled_send_word(app), loop)
 
 def schedule_send_UpscTopic_job(app, loop):
+    
     asyncio.run_coroutine_threadsafe(schedule_send_UpscTopic(app), loop)
 def is_last_day_of_month():
     today = datetime.date.today()
@@ -65,7 +66,7 @@ def main():
     scheduler = AsyncIOScheduler(timezone=timezone('Asia/Kolkata'))
     loop = asyncio.get_event_loop()
     scheduler.add_job(schedule_send_word_job, 'cron', hour=8, minute=00, args=[application, loop])
-    scheduler.add_job(schedule_send_UpscTopic_job, 'cron', hour=11, minute=30, args=[application, loop])
+    scheduler.add_job(schedule_send_UpscTopic_job, 'cron', hour=11, minute=45, args=[application, loop])
     scheduler.add_job(check_and_reset_scores, 'cron', hour=00, minute=5)
 
     scheduler.start()
