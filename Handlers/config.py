@@ -15,6 +15,8 @@ DIFFICULTY_MAP = {
     'difficulty_neetchemistry': ('Data/Neet_Chemistry.xlsx', 'Chemistry'),
 
     # Topics
+    
+    'difficulty_capitalcountry': ('Data/countryAndCity.xlsx', 'Country and Capital'),
     'difficulty_vedicSociety': ('Data/VedicSociety.xlsx', 'Vedic Society'),
      'difficulty_worldtop': ('Data/WorldTop.xlsx', 'World First'),
     'difficulty_sangamPeriod': ('Data/SangamPeriod.xlsx', 'Sangam Period'),
@@ -129,12 +131,13 @@ def Nda_keyboard2():
     ]
 def Topic_Kb0():
     return [
+        [InlineKeyboardButton("Country-Capitals", callback_data='difficulty_capitalcountry')],
         [InlineKeyboardButton("Geography", callback_data='difficulty_nda_geography')],
         [InlineKeyboardButton("Complete Biology", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Blood Relation", callback_data='difficulty_bloodrelation')],
         [InlineKeyboardButton("World First", callback_data='difficulty_worldtop')],
         [InlineKeyboardButton("Indian Polity", callback_data='difficulty_indianPolity')],
-        [InlineKeyboardButton("Civic Sense", callback_data='difficulty_CivicSense')],
+        
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_topic1')]
     ]        
 
@@ -144,6 +147,7 @@ def Topic_Kb1():
            [InlineKeyboardButton("About India", callback_data='difficulty_IndiaGs')],
         [InlineKeyboardButton("Book - Writer", callback_data='difficulty_bookwriter')],
            [InlineKeyboardButton("Art & Culture", callback_data='difficulty_artandculture')],
+           [InlineKeyboardButton("Civic Sense", callback_data='difficulty_CivicSense')],
            [InlineKeyboardButton("Begining of Modern Age", callback_data='difficulty_BgngOfModernAge')],
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_topic0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic2')],
         
@@ -190,10 +194,9 @@ def Topic_Kb2():
         
     ]
 
-
-
+                                  
 ALLOWED_FILES = {
-    "SYNO5","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection4","basic_shortidiom",
+    "SYNO5","countryAndCity","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection4","basic_shortidiom",
     "Nda_FillinTheBlanks","Nda_Idiom","English_Preposition","Nda_OneWord","thehindu","CGL_English","CGL_GK","AncientHistory",
     "MedivalHistory","ModernHistory","BloodRelation","BookWriter","CGL_Reasoning","CGL_SSC_Synonyms","India_GS","IndianPolity",
     "Indus_Valley","ArtandCulture","BeginingOfModernAge","IndianConstitution","mauryaEmpire","PreMauryaPeriod","SangamPeriod",

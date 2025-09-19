@@ -1104,6 +1104,7 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❗️ No registered groups found.")
         return
 
+    # Load the full dataframe (with all columns)
     df = pd.read_excel(RegisteredGroupfile)
     registered_groups = set(df["groupid"].dropna().astype(str).tolist())
     last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
@@ -1112,7 +1113,9 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_id != botManagementGroupId:
         return
     if not context.args:
-        await update.message.reply_text("❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start.")
+        await update.message.reply_text(
+            "❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start."
+        )
         return
 
     message = update.message.text.split(" ", 1)[1]
@@ -1150,17 +1153,15 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for success, gid in results:
         if success is True:
             count += 1
+            # ✅ Update last_message_id only for this group
+            df.loc[df["groupid"].astype(str) == str(gid), "last_message_id"] = last_message_map[str(gid)]
         elif success is False:
             to_remove.add(str(gid))
 
     registered_groups -= to_remove
 
-    # ✅ Save once
-    new_df = pd.DataFrame({
-        "groupid": list(registered_groups),
-        "last_message_id": [last_message_map.get(str(gid), None) for gid in registered_groups]
-    })
-    new_df.to_excel(RegisteredGroupfile, index=False)
+    # ✅ Save dataframe back with all columns preserved
+    df.to_excel(RegisteredGroupfile, index=False)
 
     await update.message.reply_text(f"✅ Custom message sent to {count} groups.")
 
@@ -1182,10 +1183,13 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = group_data[main_group_id].get("message", "")
     keyboard = [[InlineKeyboardButton("Start Quiz", callback_data='New_1')]]
 
-    # Load Excel once
-    df = pd.DataFrame()
+    # ✅ Load full Excel once
     if os.path.exists(RegisteredGroupfile):
         df = pd.read_excel(RegisteredGroupfile)
+    else:
+        await update.message.reply_text("❌ No registered groups found.")
+        return
+
     last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
 
     async def send_to_group(gid):
@@ -1223,19 +1227,18 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for success, gid in results:
         if success is True:
             count += 1
+            # ✅ Update last_message_id only for this group
+            df.loc[df["groupid"].astype(str) == str(gid), "last_message_id"] = last_message_map[str(gid)]
         elif success is False:
-            to_remove.add(gid)
+            to_remove.add(str(gid))
 
-    # ✅ Remove dead groups
+    # ✅ Remove dead groups from both set and df
     if to_remove:
         registered_groups -= to_remove
+        df = df[~df["groupid"].astype(str).isin(to_remove)]
 
-    # ✅ Save updated Excel with last_message_id
-    new_df = pd.DataFrame({
-        "groupid": list(registered_groups),
-        "last_message_id": [last_message_map.get(str(gid), None) for gid in registered_groups]
-    })
-    new_df.to_excel(RegisteredGroupfile, index=False)
+    # ✅ Save back full DataFrame (all columns preserved)
+    df.to_excel(RegisteredGroupfile, index=False)
 
     await update.message.reply_text(f"✅ Message sent to {count} groups.")
 
@@ -1245,9 +1248,8 @@ async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
 
     chat_id_str = str(chat.id)
-
+    load_groups()
     
-
     if chat.type in ["group", "supergroup"]:
         if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
