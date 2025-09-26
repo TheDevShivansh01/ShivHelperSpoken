@@ -226,6 +226,9 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
 
     global registered_groups, botManagementGroupId
     
+    if os.path.exists(RegisteredGroupfile):
+                with open(RegisteredGroupfile, 'rb') as file:
+                    await context.bot.send_document(chat_id=groupsendid, document=file)
 
 
     chat_id = update.effective_chat.id

@@ -76,6 +76,13 @@ DIFFICULTY_MAP = {
     'difficulty_syllogism': ('Data/Sylogism.xlsx', 'Syllogism'),
      'difficulty_NumberAlphabetSeries': ('Data/numberalphabet.xlsx', 'Number and Alphabet Series'),
       'difficulty_OddOneOut': ('Data/OddOneOut.xlsx', 'Odd One Out'),
+
+
+      
+        #Economics
+    'difficulty_upsceconomics_microeconomics': ('Data/upsc_microeconomics.xlsx', 'Microeconomics - National Income and GDP'),
+    
+    
 }
 
 def Reasoning_Kb0():
@@ -89,15 +96,17 @@ def Reasoning_Kb0():
 
 def StartingSubject0():
     return [
+        [InlineKeyboardButton("Newly added Topic", callback_data='type_newtopic')],
            [InlineKeyboardButton("NDA PYQ", callback_data='type_NDA0')],
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
-        [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
-        [InlineKeyboardButton("History Interesting Topic", callback_data='type_topic0')],
+        
+        [InlineKeyboardButton("Interesting Topic", callback_data='type_topic0')],
         [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_startsubj1')]
     ]   
 def StartingSubject1():
     return [
+           [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
   [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
     [InlineKeyboardButton("History", callback_data='type_History')],
      [InlineKeyboardButton("Jee and Neet", callback_data='type_Neet')],
@@ -120,6 +129,15 @@ def Nda_keyboard1():
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_NDA0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA2')],
         
     ]
+
+def New_addedTopics():
+    return [
+        
+        [InlineKeyboardButton("Microeconomics - National Income", callback_data='difficulty_upsceconomics_microeconomics')],
+        [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],
+        
+    ]
+
 def Nda_keyboard2():
     return [
         
