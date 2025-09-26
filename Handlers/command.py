@@ -459,7 +459,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.edit_message_text(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-         elif query.data == 'type_newtopic':
+        elif query.data == 'type_newtopic':
             reply_markup = InlineKeyboardMarkup(New_addedTopics())
             try:
                 await query.edit_message_text(f'@{username} selected New added Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
