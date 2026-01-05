@@ -1,7 +1,7 @@
 from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest, Forbidden, TimedOut
-from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Reasoning_Kb0,Upsc_keyboard2,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
+from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
 import os
 import json
 import pandas as pd
@@ -13,7 +13,7 @@ import asyncio,re,random,time
 
 
 TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
-#TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
+#TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'
 BOT_USERNAME: Final = '@slizzyy_bot'
 
 ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1001817635995]
@@ -96,14 +96,15 @@ def updateandaddgroups():
     df.to_excel(RegisteredGroupfile, index=False)
 
 
-def save_groups():
+async def save_groups():
     global registered_groups
     if os.path.exists(RegisteredGroupfile):
-        df = pd.read_excel(RegisteredGroupfile)
-        df = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
-        df.reset_index(drop=True, inplace=True)
-        df.to_excel(RegisteredGroupfile, index=False)
-        
+        def process_file():
+            df = pd.read_excel(RegisteredGroupfile)
+            df_filtered = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
+            df_filtered.reset_index(drop=True, inplace=True)
+            df_filtered.to_excel(RegisteredGroupfile, index=False)
+        await asyncio.to_thread(process_file)
     
 def load_groups():
     global registered_groups
@@ -112,7 +113,6 @@ def load_groups():
         registered_groups = set(df["groupid"].dropna().astype(str).tolist())
     else:
         registered_groups = set()
-
 
 
 def save_group_data():
@@ -164,10 +164,8 @@ def escape_markdown(text: str) -> str:
 def load_scores():
     if not os.path.exists(SCORE_FILE):
         return []
-
     workbook = openpyxl.load_workbook(SCORE_FILE)
     sheet = workbook.active
-
     scores = []
     for row in range(2, sheet.max_row + 1):  
 
@@ -177,7 +175,6 @@ def load_scores():
         round = sheet.cell(row=row, column=5).value
         if user_id and username and score and round is not None:
             scores.append((user_id, username, score,round))
-
     workbook.close()
     return scores
 
@@ -185,7 +182,6 @@ def load_quiz_data(file_path, selected_poll_count):
     global used_srnos
     try:
         df = pd.read_excel(file_path)
-
         # Strip whitespace
         for col in df.select_dtypes(include="object").columns:
             df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
@@ -236,6 +232,20 @@ def load_quiz_data(file_path, selected_poll_count):
     except Exception as e:
         print(e)
 
+async def forceregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        global registered_groups
+        chat_id = str(update.effective_chat.id)
+        if chat_id not in map(str, registered_groups):
+            if isinstance(registered_groups, set):
+                registered_groups.add(chat_id)
+            else:
+                registered_groups.append(chat_id)
+        await save_groups()
+        await update.message.reply_text("Group has been force registered successfully.")
+    except Exception as e:
+        await update.message.reply_text("Error while force registering the group.")
+       
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -245,15 +255,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat.type not in ["group", "supergroup"]:
         try:
             member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
-
             if member.status in ["member", "administrator", "creator"]:
                 await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startquiz to start the quizzes.")
             else:
-                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: sizzlehub")
+                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @sizzlehub")
                 await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
         except Exception as e:
             print(f"Error checking membership: {e}")
-            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: sizzlehub")
+            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @sizzlehub")
             await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
     else:
         # In group chats
@@ -261,7 +270,23 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    await context.bot.send_message(chat_id, text="Drop a Message on @O000000000O00000000O This id")
+    text = (
+        "📌 Available Commands\n\n"
+        "/startquiz – Start quiz\n"
+        "/myrank – Show your rank\n"
+        "/topgrpscorer – Top group scorers\n"
+        "/alltimetopper – All time toppers\n"
+        "/rankers – Monthly toppers\n"
+        "/cancelquiz – Cancel current quiz\n"
+        "/stoptopic – Stop UPSC topic\n"
+        "/allowtopic – Allow UPSC topic\n"
+        "/forceregister – Register Forcely To Include yourself in Word of The day Group List\n\n"
+        "📝 Notes\n"
+        "• Word of the day will be sent at 8:00 AM\n"
+        "• UPSC topic will be sent at 10:30 AM\n\n"
+        "📨 For any help message: @O000000000O00000000O"
+    )
+    await context.bot.send_message(chat_id, text=text, parse_mode="Markdown")
 
 async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -342,8 +367,6 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
         global EXCEL_FILE, Quiz_grammar_type,StudyStuffgrp,difficulty_message
         query = update.callback_query
         username = query.from_user.username or query.from_user.first_name
-      
-
         await query.answer()
         difficulty_message = ''
         chat_id = query.message.chat.id
@@ -432,6 +455,12 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected NDA-CDS Phase 2\n Select the Grammar Quiz type:', reply_markup=reply_markup)
+        elif query.data == 'type_tech':
+            reply_markup = InlineKeyboardMarkup(tech_keyboard())
+            try:
+                await query.edit_message_text(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
         
         elif query.data == 'type_startsubj0':
             try:
@@ -661,7 +690,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.answer("Please start a new quiz with /startquiz")
             return
 
-        selected_poll_count = int(query.data)
+        selected_poll_count = int(query.data)   #quizcount
         if not quiz_state[chat_id]["is_active"]:
             return
         quiz_state[chat_id]["total_rounds"] =  selected_poll_count
@@ -738,6 +767,7 @@ async def send_quiz_polls(chat_id, polls, context):
             await context.bot.send_message(chat_id, text="Quiz is already running in this group. Please wait or cancel with /cancelquiz")
             return
         quiz_state[chat_id].setdefault("polls", [])
+        selectedtime = quiz_state[chat_id]["selectedtime"]
         quiz_scores[chat_id] = {}
         for i, poll in enumerate(polls):
             quiz_state[chat_id]["is_active"] = False
@@ -764,6 +794,7 @@ async def send_quiz_polls(chat_id, polls, context):
                     options=options,
                     is_anonymous=False,
                     allows_multiple_answers=False,
+                    open_period=selectedtime,
                     type=Poll.QUIZ,
                     correct_option_id=options.index(correct_answer)
                 )
@@ -781,7 +812,7 @@ async def send_quiz_polls(chat_id, polls, context):
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
                 if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: sizzlehub")
+                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: @sizzlehub")
                 
 
             except BadRequest as e:
@@ -805,81 +836,67 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
         answer = update.poll_answer
         user_id = str(answer.user.id)
         if answer.user.username:
-            username = f"@{answer.user.username}" 
+            username = f"@{answer.user.username}"
         elif answer.user.first_name:
-            username = answer.user.first_name  
+            username = answer.user.first_name
         else:
             username = str(user_id)
         selected_options = answer.option_ids
-    
-
         for chat_id, chat_quiz in quiz_state.items():
             if "polls" not in chat_quiz:
                 continue
             for poll in chat_quiz["polls"]:
                 if poll["poll_id"] == answer.poll_id:
+                    poll["responses"][user_id] = True
                     correct_answer = poll["correct_answer"]
                     options = poll["options"]
-
-                    selected_answer = options[selected_options[0]]  # Assume single choice
+                    selected_answer = options[selected_options[0]]
                     if selected_answer == correct_answer:
-                        # Initialize chat-specific score tracking
                         if chat_id not in quiz_scores:
                             quiz_scores[chat_id] = {}
-
                         if user_id not in quiz_scores[chat_id]:
                             quiz_scores[chat_id][user_id] = {"username": username, "score": 0}
-
                         quiz_scores[chat_id][user_id]["score"] += 1
-                     
-
-                    return  # Exit after finding the correct poll
-
+                    return
     except Exception as e:
         print(f"Error in handle_poll_answer: {e}")
 
 async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Returns the total score, rounds played, total groups, and rank of a user across all groups."""
     try:
         user_id = str(update.message.from_user.id)
         username = update.message.from_user.username or update.message.from_user.first_name or user_id
         username = escape_markdown(username)
-
         try:
             workbook = load_workbook(SCORE_FILE)
             sheet = workbook.active
         except FileNotFoundError:
             await update.message.reply_text("No scores found.")
             return
-
         user_scores = {}
         user_groups = {}
-
         for row in sheet.iter_rows(min_row=2, values_only=True):
             if row and len(row) >= 6:
                 _, chat_id, stored_user_id, stored_username, score, rounds = row
                 stored_user_id = str(stored_user_id)
-
                 if stored_user_id not in user_scores:
                     user_scores[stored_user_id] = {"score": 0, "rounds": 0}
                     user_groups[stored_user_id] = set()
-
                 user_scores[stored_user_id]["score"] += int(score)
                 user_scores[stored_user_id]["rounds"] += int(rounds)
                 user_groups[stored_user_id].add(chat_id)
-
-
         sorted_users = sorted(user_scores.items(), key=lambda x: x[1]["score"], reverse=True)
         rank = None
+        uid_target = int(float(user_id))
+        matched_key = None
         for idx, (uid, data) in enumerate(sorted_users, start=1):
-            if uid == user_id:
+            if int(float(uid)) == uid_target:
                 rank = idx
+                matched_key = uid
                 break
-
         if rank:
-            total_score = user_scores[user_id]["score"]
-            total_rounds = user_scores[user_id]["rounds"]
-            total_groups = len(user_groups[user_id])
+            total_score = user_scores[matched_key]["score"]
+            total_rounds = user_scores[matched_key]["rounds"]
+            total_groups = len(user_groups[matched_key])
             totalperson = len(sorted_users) + 500
             response = (
                 f"🏅 *Your Rank*\n\n"
@@ -888,13 +905,10 @@ async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🎯 *Total Score:* {total_score}\n"
                 f"🔄 *Rounds Played:* {total_rounds}\n"
                 f"🧑‍🤝‍🧑 *Total Groups:* {total_groups}"
-                
             )
         else:
             response = "You haven't participated in any quizzes yet."
-
         await update.message.reply_text(response, parse_mode="Markdown")
-
     except Exception as e:
         print(f"Error in my_rank: {e}")
 
@@ -929,7 +943,6 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No scores available for this group.")
             return
 
-        # Sort and get top 10
         sorted_group_scores = sorted(group_scores.items(), key=lambda x: x[1]["score"], reverse=True)
         leaderboard = f"🏆 *Top 10 Scorers in This Group* 🏆\n👥 *Total Members in Leaderboard:* `{len(total_users)}`\n\n"
         
@@ -940,6 +953,8 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         print(f"Error in top1grp_scorer: {e}")
+
+
 async def update_user_score(chat_id, correct_users, file):
     """
     Optimized: Update user scores in Excel using Pandas (much faster).
@@ -984,49 +999,48 @@ async def calculate_scores(chat_id, context):
         if chat_id not in quiz_state or "polls" not in quiz_state[chat_id]:
             await context.bot.send_message(chat_id, "No quiz data found.")
             return
-
         total_polls = len(quiz_state[chat_id]["polls"])
         if total_polls == 0:
             await context.bot.send_message(chat_id, "No polls were conducted.")
             return
-
-        await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
-
+        msg = quiz_state[chat_id].get("calc_msg")
+        if msg:
+            try:
+                await msg.edit_text(f"Calculating scores for {total_polls} rounds...")
+            except:
+                msg = await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
+                quiz_state[chat_id]["calc_msg"] = msg
+        else:
+            msg = await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
+            quiz_state[chat_id]["calc_msg"] = msg
         if chat_id not in quiz_scores or not quiz_scores[chat_id]:
             quiz_state.pop(chat_id, None)
             quiz_scores.pop(chat_id, None)
             await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
             return
-
         await update_user_score(chat_id, quiz_scores[chat_id], SCORE_FILE)
         await update_user_score(chat_id, quiz_scores[chat_id], MNTH_SCORE_FILE)
-
-        # Upload once after saving
         for file in [SCORE_FILE, MNTH_SCORE_FILE]:
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     await context.bot.send_document(chat_id=groupsendid, document=f)
-
-        # Sort results fast
-        df = pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index")
-        df = df.sort_values(by="score", ascending=False)
-
+        df = await asyncio.to_thread(lambda: pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index").sort_values(by="score", ascending=False))
         leaderboard = "🏆 *Quiz Results* 🏆\n\n"
         for rank, row in enumerate(df.itertuples(), start=1):
             leaderboard += f"{rank}\\) *{escape_markdown(row.username)}* \\- `{row.score} points`\n"
-
-        leaderboard += "\nsupport us: @sizzlehub \nStart Quiz again with /startquiz "
-
-        await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
-
+        leaderboard += "\nJoin: @sizzlehub \nStart Quiz again with /startquiz "
+        try:
+            await msg.edit_text(leaderboard, parse_mode="MarkdownV2")
+        except:
+            await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
-
     except Exception as e:
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
         await context.bot.send_message(chat_id, "⚠️ Error while calculating scores.")
         await context.bot.send_message(groupsendid, f"Error occured: {e}")
+
 
 def escape_markdown(text):
     """Escape special characters for Telegram MarkdownV2."""
@@ -1253,14 +1267,14 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
     chat = update.effective_chat
-
+  
     chat_id_str = str(chat.id)
     load_groups()
-    
+    print(chat.type)
     if chat.type in ["group", "supergroup"]:
         if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
-            save_groups()
+            await save_groups()
             
         
         
@@ -1352,37 +1366,24 @@ async def add_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def countdown_and_close_poll(chat_id, poll_message, context):
     try:
-        selectedtime = quiz_state[chat_id]["selectedtime"]
-        if not isinstance(selectedtime, int):
-            try:
-                selectedtime = int(selectedtime)
-            except:
-                selectedtime = 15
-
-        if selectedtime < 10:
-            selectedtime = 15
-        await asyncio.sleep(selectedtime)
-        closed_poll = await poll_message.stop_poll()
-        
-
+        await asyncio.sleep(int(quiz_state[chat_id]["selectedtime"]))
         for poll in quiz_state[chat_id]["polls"]:
             if poll["poll_id"] == poll_message.poll.id:
                 meaning = poll["meaning"]
-                if str(meaning).strip().lower() == "nan" or not str(meaning).strip():
-                    break
-                if meaning:
+                if meaning and str(meaning).strip().lower() != "nan":
                     await context.bot.send_message(chat_id, text=f"Meaning: {meaning}")
+                responses = poll.get("responses", {})
+                total_votes = len(responses)
+                if total_votes == 0:
+                    quiz_state[chat_id]["consecutive_unanswered"] += 1
+                else:
+                    quiz_state[chat_id]["consecutive_unanswered"] = 0
                 break
-        total_votes = sum(option.voter_count for option in closed_poll.options)
-        if total_votes == 0:
-            quiz_state[chat_id]["consecutive_unanswered"] += 1
-        else:
-            quiz_state[chat_id]["consecutive_unanswered"] = 0
         if quiz_state[chat_id]["consecutive_unanswered"] >= 3:
             await context.bot.send_message(chat_id, text="❌ Quiz canceled due to inactivity. Restart with /startquiz")
             quiz_state[chat_id]["active"] = False
-            await calculate_scores(chat_id, context) 
-            return 
+            await calculate_scores(chat_id, context)
+            return
     except Exception as e:
         print(f"Error in countdown_and_close_poll: {e}")
 

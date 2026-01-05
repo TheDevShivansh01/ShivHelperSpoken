@@ -225,19 +225,22 @@ async def shuffle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     global registered_groups, botManagementGroupId
-    
+    print("send word of the dat")
     if os.path.exists(RegisteredGroupfile):
                 with open(RegisteredGroupfile, 'rb') as file:
+                    print("file send")
                     await context.bot.send_document(chat_id=groupsendid, document=file)
 
 
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
+        print("chat id error")
         return
 
     word_data, df = get_next_unsent_word()
     if not word_data:
         await update.message.reply_text("✅ All words have already been sent.")
+        print("this run")
         return
 
     message = WORD_OF_THE_DAY_TEMPLATE.format(**word_data)
@@ -245,10 +248,12 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
     to_remove = set()
     for group_id in list(registered_groups):
         try:
+            print(group_id)
             member = await context.bot.get_chat_member(chat_id=group_id, user_id=context.bot.id)
             if member.status in ['left', 'kicked']:
                 to_remove.add(group_id)
         except (Forbidden, BadRequest):
+            print("hello badrequest")
             to_remove.add(group_id)
         except Exception as e:
             print(f"Error checking group {group_id}: {e}")
@@ -277,7 +282,7 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
             to_remove.add(gid)
 
     registered_groups -= to_remove
-    save_groups()
+    await save_groups()
     save_group_data()
 
 

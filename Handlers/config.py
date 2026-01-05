@@ -7,7 +7,7 @@ DIFFICULTY_MAP = {
     'difficulty_ssc_ows': ('Data/SSC_OneWordSubstitution.xlsx', 'One word Substitution'),
     'difficulty_prepo': ('Data/English_Preposition.xlsx', 'Preposition'),
     'difficulty_antonyms': ('Data/Antonyms5.xlsx', 'Antonyms'),
-    'difficulty_spellcorr': ('Data/spellCorrection4.xlsx', 'Spelling Correction'),
+    'difficulty_spellcorr': ('Data/spellCorrection5.xlsx', 'Spelling Correction'),
     'difficulty_sentcorr': ('Data/sentenceCorr4.xlsx', 'Sentence Correction'),
     'difficulty_shortIdiom': ('Data/basic_shortidiom.xlsx', 'Daily Life Idioms'),
 
@@ -15,10 +15,9 @@ DIFFICULTY_MAP = {
     'difficulty_neetchemistry': ('Data/Neet_Chemistry.xlsx', 'Chemistry'),
 
     # Topics
-    
     'difficulty_capitalcountry': ('Data/countryAndCity.xlsx', 'Country and Capital'),
     'difficulty_vedicSociety': ('Data/VedicSociety.xlsx', 'Vedic Society'),
-     'difficulty_worldtop': ('Data/WorldTop.xlsx', 'World First'),
+    'difficulty_worldtop': ('Data/WorldTop.xlsx', 'World First'),
     'difficulty_sangamPeriod': ('Data/SangamPeriod.xlsx', 'Sangam Period'),
     'difficulty_PreMaurya': ('Data/PreMauryaPeriod.xlsx', 'Pre Maurya Period'),
     'difficulty_bloodrelation': ('Data/BloodRelation.xlsx', 'Blood Relation'),
@@ -39,10 +38,10 @@ DIFFICULTY_MAP = {
     'difficulty_idiomphrase_nda': ('Data/Nda_Idiom.xlsx', 'Idiom Phrase'),
     'difficulty_nda_ows': ('Data/Nda_OneWord.xlsx', 'One word Substitution'),
     'difficulty_nda_antonyms': ('Data/Nda_Antonyms.xlsx', 'Antonyms'),
-     'difficulty_nda_chemistry': ('Data/Nda_Chemistry.xlsx', 'Chemistry'),
-      'difficulty_nda_bio': ('Data/Nda_BIO.xlsx', 'Biology'),
-      'difficulty_nda_physics': ('Data/Nda_Physics.xlsx', 'Physics'),
-      'difficulty_nda_geography': ('Data/Nda_geography.xlsx', 'Geography'),
+    'difficulty_nda_chemistry': ('Data/Nda_Chemistry.xlsx', 'Chemistry'),
+    'difficulty_nda_bio': ('Data/Nda_BIO.xlsx', 'Biology'),
+    'difficulty_nda_physics': ('Data/Nda_Physics.xlsx', 'Physics'),
+    'difficulty_nda_geography': ('Data/Nda_geography.xlsx', 'Geography'),
 
     # UPSC
     'difficulty_upscpreviousyear': ('Data/UPSC_GS_2023.xlsx', 'GS-Previous years paper'),
@@ -74,43 +73,55 @@ DIFFICULTY_MAP = {
 
         #Reasoning
     'difficulty_syllogism': ('Data/Sylogism.xlsx', 'Syllogism'),
-     'difficulty_NumberAlphabetSeries': ('Data/numberalphabet.xlsx', 'Number and Alphabet Series'),
-      'difficulty_OddOneOut': ('Data/OddOneOut.xlsx', 'Odd One Out'),
+    'difficulty_NumberAlphabetSeries': ('Data/numberalphabet.xlsx', 'Number and Alphabet Series'),
+    'difficulty_OddOneOut': ('Data/OddOneOut.xlsx', 'Odd One Out'),
 
 
       
-        #Economics
+    #Economics
     'difficulty_upsceconomics_microeconomics': ('Data/upsc_microeconomics.xlsx', 'Microeconomics - National Income and GDP'),
     
-    
+    #Tech
+    'difficulty_type_techAi': ('Data/tech_ai.xlsx', 'Artificial Intelligence'),
+    'difficulty_type_techCyber': ('Data/tech_cyber.xlsx', 'Cyber Security'),
+    'difficulty_type_techDsa': ('Data/tech_dsa.xlsx', 'Data Structure and Algorithm'),
+    'difficulty_type_techJava': ('Data/tech_java.xlsx', 'Java Language'),
+    #'difficulty_type_techPython': ('Data/tech_python.xlsx', 'Python Language'),
 }
-
+def tech_keyboard():
+    return [
+        [InlineKeyboardButton("Artificial Intelligence", callback_data='difficulty_type_techAi')],
+        [InlineKeyboardButton("Cyber Security", callback_data='difficulty_type_techCyber')],
+        [InlineKeyboardButton("Dsa (Data Structure and Algo)", callback_data='difficulty_type_techDsa')],
+        [InlineKeyboardButton("Java", callback_data='difficulty_type_techJava')],
+       # [InlineKeyboardButton("python", callback_data='difficulty_type_techPython')],
+    ]   
 def Reasoning_Kb0():
     return [
-          [InlineKeyboardButton("Odd One Out", callback_data='difficulty_OddOneOut')],
-           [InlineKeyboardButton("Number Alphabet Series", callback_data='difficulty_NumberAlphabetSeries')],
-           [InlineKeyboardButton("Sylogism", callback_data='difficulty_syllogism')],
-           [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')]
-        
+        [InlineKeyboardButton("Odd One Out", callback_data='difficulty_OddOneOut')],
+        [InlineKeyboardButton("Number Alphabet Series", callback_data='difficulty_NumberAlphabetSeries')],
+        [InlineKeyboardButton("Sylogism", callback_data='difficulty_syllogism')],
+        [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')]
     ]
+
 
 def StartingSubject0():
     return [
-        [InlineKeyboardButton("Newly added Topic", callback_data='type_newtopic')],
-           [InlineKeyboardButton("NDA PYQ", callback_data='type_NDA0')],
+        [InlineKeyboardButton("Newly Added Topic", callback_data='type_newtopic')],
+        [InlineKeyboardButton("Technical/Engineering", callback_data='type_tech')],
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
-        
         [InlineKeyboardButton("Interesting Topic", callback_data='type_topic0')],
         [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_startsubj1')]
     ]   
 def StartingSubject1():
     return [
-           [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
-  [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
+    [InlineKeyboardButton("Reasoning", callback_data='type_reasoning')],
+    [InlineKeyboardButton("NDA PYQ", callback_data='type_NDA0')],
+    [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
     [InlineKeyboardButton("History", callback_data='type_History')],
-     [InlineKeyboardButton("Jee and Neet", callback_data='type_Neet')],
-     [InlineKeyboardButton("🏎️  Previous", callback_data='type_startsubj0')]
+    [InlineKeyboardButton("Jee and Neet", callback_data='type_Neet')],
+    [InlineKeyboardButton("🏎️  Previous", callback_data='type_startsubj0')]
     ]   
 def Nda_keyboard0():
     return [
@@ -132,10 +143,11 @@ def Nda_keyboard1():
 
 def New_addedTopics():
     return [
-        
+        [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
+        [InlineKeyboardButton("Artificial Intelligence", callback_data='type_techAi')],
+        [InlineKeyboardButton("Cyber Security", callback_data='type_techCyber')],
         [InlineKeyboardButton("Microeconomics - National Income", callback_data='difficulty_upsceconomics_microeconomics')],
-        [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],
-        
+        [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],    
     ]
 
 def Nda_keyboard2():
@@ -143,7 +155,7 @@ def Nda_keyboard2():
         
         [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms_nda')],
         [InlineKeyboardButton("Antonyms", callback_data='difficulty_nda_antonyms')],
-       [InlineKeyboardButton("Fill in the Blanks", callback_data='difficulty_fillblank_nda')],
+        [InlineKeyboardButton("Fill in the Blanks", callback_data='difficulty_fillblank_nda')],
         [InlineKeyboardButton("🏎️  Previous", callback_data='type_NDA1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA0')]
         
     ]
@@ -155,18 +167,17 @@ def Topic_Kb0():
         [InlineKeyboardButton("Blood Relation", callback_data='difficulty_bloodrelation')],
         [InlineKeyboardButton("World First", callback_data='difficulty_worldtop')],
         [InlineKeyboardButton("Indian Polity", callback_data='difficulty_indianPolity')],
-        
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_topic1')]
     ]        
 
 def Topic_Kb1():
     return [
-          [InlineKeyboardButton("Indian Constitution", callback_data='difficulty_IndiaConstitute')],
-           [InlineKeyboardButton("About India", callback_data='difficulty_IndiaGs')],
+        [InlineKeyboardButton("Indian Constitution", callback_data='difficulty_IndiaConstitute')],
+        [InlineKeyboardButton("About India", callback_data='difficulty_IndiaGs')],
         [InlineKeyboardButton("Book - Writer", callback_data='difficulty_bookwriter')],
-           [InlineKeyboardButton("Art & Culture", callback_data='difficulty_artandculture')],
-           [InlineKeyboardButton("Civic Sense", callback_data='difficulty_CivicSense')],
-           [InlineKeyboardButton("Begining of Modern Age", callback_data='difficulty_BgngOfModernAge')],
+        [InlineKeyboardButton("Art & Culture", callback_data='difficulty_artandculture')],
+        [InlineKeyboardButton("Civic Sense", callback_data='difficulty_CivicSense')],
+        [InlineKeyboardButton("Beginning of Modern Age", callback_data='difficulty_BgngOfModernAge')],
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_topic0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic2')],
         
     ]
@@ -178,8 +189,7 @@ def Upsc_keyboard0():
         [InlineKeyboardButton("The Hindu Vocab", callback_data='difficulty_thehindu')],
         [InlineKeyboardButton("History", callback_data='difficulty_upschistory')],
         [InlineKeyboardButton("Science Tech", callback_data='difficulty_upscscience')],
-        [InlineKeyboardButton("Revolt of 1857", callback_data='difficulty_upscrevolt1857')],
-                
+        [InlineKeyboardButton("Revolt of 1857", callback_data='difficulty_upscrevolt1857')],       
         [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc1')],
     ]  
 
@@ -189,8 +199,7 @@ def Upsc_keyboard1():
         [InlineKeyboardButton("Struggle for swaraj", callback_data='difficulty_upscstruggleforswaraj')],
         [InlineKeyboardButton("IP-DPSP", callback_data='difficulty_upscDPSP')],
         [InlineKeyboardButton("IP-Seperation of Power", callback_data='difficulty_upscseperationofpower')],
-        [InlineKeyboardButton("Union and State Function and Resp", callback_data='difficulty_upscunionandstatefunction')],
-                
+        [InlineKeyboardButton("Union and State Function and Resp", callback_data='difficulty_upscunionandstatefunction')],        
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc2')],
     ]  
 def Upsc_keyboard2():
@@ -204,17 +213,17 @@ def Topic_Kb2():
     return [
         
         [InlineKeyboardButton("Indus Valley Civilization", callback_data='difficulty_indusvalley')],
-          [InlineKeyboardButton("Maurya Empire", callback_data='difficulty_Mauryaempire')],
-           [InlineKeyboardButton("Pre Maurya Period", callback_data='difficulty_PreMaurya')],
-           [InlineKeyboardButton("Sangam Period", callback_data='difficulty_sangamPeriod')],
-           [InlineKeyboardButton("Vedic Society", callback_data='difficulty_vedicSociety')],
+        [InlineKeyboardButton("Maurya Empire", callback_data='difficulty_Mauryaempire')],
+        [InlineKeyboardButton("Pre Maurya Period", callback_data='difficulty_PreMaurya')],
+        [InlineKeyboardButton("Sangam Period", callback_data='difficulty_sangamPeriod')],
+        [InlineKeyboardButton("Vedic Society", callback_data='difficulty_vedicSociety')],
         [InlineKeyboardButton("🏎️  Previous", callback_data='type_topic1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_topic0')]
         
     ]
 
                                   
 ALLOWED_FILES = {
-    "SYNO5","countryAndCity","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection4","basic_shortidiom",
+    "SYNO5","countryAndCity","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection5","basic_shortidiom",
     "Nda_FillinTheBlanks","Nda_Idiom","English_Preposition","Nda_OneWord","thehindu","CGL_English","CGL_GK","AncientHistory",
     "MedivalHistory","ModernHistory","BloodRelation","BookWriter","CGL_Reasoning","CGL_SSC_Synonyms","India_GS","IndianPolity",
     "Indus_Valley","ArtandCulture","BeginingOfModernAge","IndianConstitution","mauryaEmpire","PreMauryaPeriod","SangamPeriod",

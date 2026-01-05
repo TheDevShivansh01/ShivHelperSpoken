@@ -1,6 +1,6 @@
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from Handlers.command import TOKEN,add_promo,botManagementGroupId,MNTH_SCORE_FILE, start_command,start_game_command,help_command,handle_difficulty_selection,handle_type_selection,handle_time_selection,handle_button_click,handle_New_button_click,handle_poll_answer,my_rank
-from Handlers.command import register_group,month_topper,handle_allsizzlescore,topgrp_scorer,all_time_topper,cancel_quiz_command,handle_updatesizzlescore,handle_jsonFile,send_message,add_message,add_time,add_file,show_message,broadcast_message
+from Handlers.command import register_group,forceregister,month_topper,handle_allsizzlescore,topgrp_scorer,all_time_topper,cancel_quiz_command,handle_updatesizzlescore,handle_jsonFile,send_message,add_message,add_time,add_file,show_message,broadcast_message
 from Handlers.common import stopupsctopicCommand,allowupsctopicCommand,send_word_of_the_day,schedule_send_UpscTopic,scheduled_send_word,shuffle_all_files_inplace,shuffle_command
 import asyncio,datetime,calendar
 import pandas as pd
@@ -63,6 +63,7 @@ def main():
     application.add_handler(CommandHandler("sendwordoftheday", send_word_of_the_day))
     application.add_handler(CommandHandler("stoptopic", stopupsctopicCommand))
     application.add_handler(CommandHandler("allowtopic", allowupsctopicCommand))
+    application.add_handler(CommandHandler("forceregister", forceregister))
     scheduler = AsyncIOScheduler(timezone=timezone('Asia/Kolkata'))
     loop = asyncio.get_event_loop()
     scheduler.add_job(schedule_send_word_job, 'cron', hour=8, minute=00, args=[application, loop])
