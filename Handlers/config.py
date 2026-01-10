@@ -86,7 +86,12 @@ DIFFICULTY_MAP = {
     'difficulty_type_techCyber': ('Data/tech_cyber.xlsx', 'Cyber Security'),
     'difficulty_type_techDsa': ('Data/tech_dsa.xlsx', 'Data Structure and Algorithm'),
     'difficulty_type_techJava': ('Data/tech_java.xlsx', 'Java Language'),
-    #'difficulty_type_techPython': ('Data/tech_python.xlsx', 'Python Language'),
+    'difficulty_type_techPython': ('Data/tech_python.xlsx', 'Python Language'),
+
+
+     #Nigeria
+    'difficulty_nigeria_utme': ('Data/Nigeria_UTME.xlsx', 'UTME Questions'),
+    
 }
 def tech_keyboard():
     return [
@@ -94,7 +99,7 @@ def tech_keyboard():
         [InlineKeyboardButton("Cyber Security", callback_data='difficulty_type_techCyber')],
         [InlineKeyboardButton("Dsa (Data Structure and Algo)", callback_data='difficulty_type_techDsa')],
         [InlineKeyboardButton("Java", callback_data='difficulty_type_techJava')],
-       # [InlineKeyboardButton("python", callback_data='difficulty_type_techPython')],
+        [InlineKeyboardButton("python", callback_data='difficulty_type_techPython')],
     ]   
 def Reasoning_Kb0():
     return [
@@ -111,7 +116,7 @@ def StartingSubject0():
         [InlineKeyboardButton("Technical/Engineering", callback_data='type_tech')],
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
         [InlineKeyboardButton("Interesting Topic", callback_data='type_topic0')],
-        [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
+        [InlineKeyboardButton("Nigeria Country's", callback_data='type_nigeria')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_startsubj1')]
     ]   
 def StartingSubject1():
@@ -121,6 +126,7 @@ def StartingSubject1():
     [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
     [InlineKeyboardButton("History", callback_data='type_History')],
     [InlineKeyboardButton("Jee and Neet", callback_data='type_Neet')],
+      [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
     [InlineKeyboardButton("🏎️  Previous", callback_data='type_startsubj0')]
     ]   
 def Nda_keyboard0():
@@ -132,6 +138,11 @@ def Nda_keyboard0():
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
 
+def nigeria_keyboard1():
+    return [
+        [InlineKeyboardButton("UTME Questions", callback_data='difficulty_nigeria_utme')],
+     
+    ]  
 def Nda_keyboard1():
     return [
         [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
@@ -143,11 +154,12 @@ def Nda_keyboard1():
 
 def New_addedTopics():
     return [
+        [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
+        [InlineKeyboardButton("python", callback_data='difficulty_type_techPython')],
         [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
         [InlineKeyboardButton("Artificial Intelligence", callback_data='type_techAi')],
         [InlineKeyboardButton("Cyber Security", callback_data='type_techCyber')],
-        [InlineKeyboardButton("Microeconomics - National Income", callback_data='difficulty_upsceconomics_microeconomics')],
-        [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],    
+          [InlineKeyboardButton("UTME Questions", callback_data='difficulty_nigeria_utme')],
     ]
 
 def Nda_keyboard2():

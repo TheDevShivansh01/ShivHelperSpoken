@@ -133,7 +133,6 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
 
     message = create_daily_template()
    
-
     count = 0
     async def send_to_group(gid):
         try:

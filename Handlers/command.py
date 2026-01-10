@@ -1,7 +1,7 @@
 from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest, Forbidden, TimedOut
-from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
+from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,nigeria_keyboard1,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
 import os
 import json
 import pandas as pd
@@ -43,18 +43,24 @@ def ensure_excel_file():
 # Function to add user to Excel if not exist
 def add_personal_user(user):
     ensure_excel_file()
+
     df = pd.read_excel(personal_user_file)
 
-    # Check if user_id already exists
-    if user.id not in df["user_id"].values:
-        new_row = {
-            "user_id": user.id,
-            "username": user.username or "",
-            "first_name": user.first_name or "",
-            "last_name": user.last_name or ""
-        }
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    if "user_id" not in df.columns:
+        df = pd.DataFrame(columns=["user_id", "username", "first_name", "last_name"])
+
+    df["user_id"] = df["user_id"].astype(str)
+    userId = str(user.id)
+
+    if userId not in df["user_id"].values:
+        df.loc[len(df)] = [
+            userId,
+            user.username or "",
+            user.first_name or "",
+            user.last_name or ""
+        ]
         df.to_excel(personal_user_file, index=False)
+
 
 if os.path.exists(RegisteredGroupfile):
     df = pd.read_excel(RegisteredGroupfile)
@@ -95,16 +101,24 @@ def updateandaddgroups():
 
     df.to_excel(RegisteredGroupfile, index=False)
 
-
 async def save_groups():
     global registered_groups
-    if os.path.exists(RegisteredGroupfile):
-        def process_file():
+    def process_file():
+        if os.path.exists(RegisteredGroupfile):
             df = pd.read_excel(RegisteredGroupfile)
-            df_filtered = df[df["groupid"].astype(str).isin(set(map(str, registered_groups)))]
-            df_filtered.reset_index(drop=True, inplace=True)
-            df_filtered.to_excel(RegisteredGroupfile, index=False)
-        await asyncio.to_thread(process_file)
+            excel_groups = set(df["groupid"].dropna().astype(str))
+        else:
+            excel_groups = set()
+
+        all_groups = excel_groups.union(set(map(str, registered_groups)))
+
+        new_df = pd.DataFrame({"groupid": list(all_groups)})
+        new_df.to_excel(RegisteredGroupfile, index=False)
+
+        
+
+    await asyncio.to_thread(process_file)
+
     
 def load_groups():
     global registered_groups
@@ -236,6 +250,7 @@ async def forceregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         global registered_groups
         chat_id = str(update.effective_chat.id)
+        
         if chat_id not in map(str, registered_groups):
             if isinstance(registered_groups, set):
                 registered_groups.add(chat_id)
@@ -258,11 +273,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if member.status in ["member", "administrator", "creator"]:
                 await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startquiz to start the quizzes.")
             else:
-                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @sizzlehub")
+                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
                 await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
         except Exception as e:
             print(f"Error checking membership: {e}")
-            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @sizzlehub")
+            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
             await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
     else:
         # In group chats
@@ -461,6 +476,12 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.edit_message_text(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
+        elif query.data == 'type_nigeria':
+            reply_markup = InlineKeyboardMarkup(nigeria_keyboard1())
+            try:
+                await query.edit_message_text(f'@{username} selected Nigeria Country \n\n Select the Further Quiz :', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected Nigeria Country \n\n Select the Further Quiz:', reply_markup=reply_markup)
         
         elif query.data == 'type_startsubj0':
             try:
@@ -653,10 +674,10 @@ async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TY
         else:
             quiz_state[chat_id]["selectedtime"] = selected_time_limit
         keyboard = [
-            [InlineKeyboardButton("15 Words", callback_data='15')],
-            [InlineKeyboardButton("25 Words", callback_data='25')],
-            [InlineKeyboardButton("35 Words", callback_data='35')],
-            [InlineKeyboardButton("50 Words", callback_data='50')],
+            [InlineKeyboardButton("15 Round", callback_data='15')],
+            [InlineKeyboardButton("25 Round", callback_data='25')],
+            [InlineKeyboardButton("35 Round", callback_data='35')],
+            [InlineKeyboardButton("50 Round", callback_data='50')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -812,7 +833,7 @@ async def send_quiz_polls(chat_id, polls, context):
                 await countdown_and_close_poll(chat_id, poll_message, context)
                 await asyncio.sleep(2)
                 if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: @sizzlehub")
+                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: @currentaffairs_04")
                 
 
             except BadRequest as e:
@@ -955,7 +976,7 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error in top1grp_scorer: {e}")
 
 
-async def update_user_score(chat_id, correct_users, file):
+def update_user_score(chat_id, correct_users, file):
     """
     Optimized: Update user scores in Excel using Pandas (much faster).
     """
@@ -1018,21 +1039,21 @@ async def calculate_scores(chat_id, context):
             quiz_scores.pop(chat_id, None)
             await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
             return
-        await update_user_score(chat_id, quiz_scores[chat_id], SCORE_FILE)
-        await update_user_score(chat_id, quiz_scores[chat_id], MNTH_SCORE_FILE)
-        for file in [SCORE_FILE, MNTH_SCORE_FILE]:
-            if os.path.exists(file):
-                with open(file, "rb") as f:
-                    await context.bot.send_document(chat_id=groupsendid, document=f)
+        await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id], SCORE_FILE)
+        
         df = await asyncio.to_thread(lambda: pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index").sort_values(by="score", ascending=False))
         leaderboard = "🏆 *Quiz Results* 🏆\n\n"
         for rank, row in enumerate(df.itertuples(), start=1):
             leaderboard += f"{rank}\\) *{escape_markdown(row.username)}* \\- `{row.score} points`\n"
-        leaderboard += "\nJoin: @sizzlehub \nStart Quiz again with /startquiz "
+        leaderboard += "\nJoin: @currentaffairs_04 \nStart Quiz again with /startquiz "
         try:
             await msg.edit_text(leaderboard, parse_mode="MarkdownV2")
         except:
             await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
+        await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id],MNTH_SCORE_FILE)
+        for file in [SCORE_FILE, MNTH_SCORE_FILE]:
+                with open(file, "rb") as f:
+                    await context.bot.send_document(chat_id=groupsendid, document=f)
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
     except Exception as e:
@@ -1040,6 +1061,7 @@ async def calculate_scores(chat_id, context):
         quiz_scores.pop(chat_id, None)
         await context.bot.send_message(chat_id, "⚠️ Error while calculating scores.")
         await context.bot.send_message(groupsendid, f"Error occured: {e}")
+
 
 
 def escape_markdown(text):
@@ -1124,8 +1146,6 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not os.path.exists(RegisteredGroupfile):
         await update.message.reply_text("❗️ No registered groups found.")
         return
-
-    # Load the full dataframe (with all columns)
     df = pd.read_excel(RegisteredGroupfile)
     registered_groups = set(df["groupid"].dropna().astype(str).tolist())
     last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
@@ -1138,11 +1158,9 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❗️ Please provide a message.\nUsage:\n/broadcastmessage Hello! Click below to start."
         )
         return
-
     message = update.message.text.split(" ", 1)[1]
     start_url = "https://t.me/slizzyy_bot?start=start"
     keyboard = [[InlineKeyboardButton("Send Now", url=start_url)]]
-
     async def send_to_group(gid):
         gid_str = str(gid)
         try:
@@ -1165,7 +1183,7 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
                 return False, gid
             return None, gid
-
+    
     tasks = [asyncio.create_task(send_to_group(gid)) for gid in registered_groups]
     results = await asyncio.gather(*tasks)
 
@@ -1248,17 +1266,14 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for success, gid in results:
         if success is True:
             count += 1
-            # ✅ Update last_message_id only for this group
             df.loc[df["groupid"].astype(str) == str(gid), "last_message_id"] = last_message_map[str(gid)]
         elif success is False:
             to_remove.add(str(gid))
 
-    # ✅ Remove dead groups from both set and df
     if to_remove:
         registered_groups -= to_remove
         df = df[~df["groupid"].astype(str).isin(to_remove)]
 
-    # ✅ Save back full DataFrame (all columns preserved)
     df.to_excel(RegisteredGroupfile, index=False)
 
     await update.message.reply_text(f"✅ Message sent to {count} groups.")
@@ -1267,10 +1282,7 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
     chat = update.effective_chat
-  
     chat_id_str = str(chat.id)
-    load_groups()
-    print(chat.type)
     if chat.type in ["group", "supergroup"]:
         if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
