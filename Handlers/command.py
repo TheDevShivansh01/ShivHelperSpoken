@@ -1043,9 +1043,16 @@ async def calculate_scores(chat_id, context):
         
         df = await asyncio.to_thread(lambda: pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index").sort_values(by="score", ascending=False))
         leaderboard = "🏆 *Quiz Results* 🏆\n\n"
+
         for rank, row in enumerate(df.itertuples(), start=1):
-            leaderboard += f"{rank}\\) *{escape_markdown(row.username)}* \\- `{row.score} points`\n"
-        leaderboard += "\nJoin: @currentaffairs_04 \nStart Quiz again with /startquiz "
+            leaderboard += (
+        f"{rank}\\) "
+        f"*{escape_markdown(str(row.username))}* "
+        f"\\- `{escape_markdown(str(row.score))} points`\n"
+    )
+
+        leaderboard += "\nJoin: @currentaffairs\\_04\nStart Quiz again with /startquiz"
+
         try:
             await msg.edit_text(leaderboard, parse_mode="MarkdownV2")
         except:
