@@ -13,7 +13,7 @@ import asyncio,re,random,time
 
 
 TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
-#TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'
+#TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'   #testing bot
 BOT_USERNAME: Final = '@slizzyy_bot'
 
 ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1001817635995]
@@ -28,19 +28,18 @@ CHANNEL_ID = "-1002234035497"
 new_timer = 20
 Promotion = False
 final_poll_responses = {}
+broadcast_url = "https://t.me/slizzyy_bot?start=start"
 RegisteredGroupfile = "UserScore/RegisteredGroups.xlsx"
 GROUPS_FILE = "groups.json"
 group_data_file = "group_data.json"
 
 personal_user_file ="UserScore/PersonalUsers.xlsx"
 
-# Function to ensure Excel file exists
 def ensure_excel_file():
     if not os.path.exists(personal_user_file):
         df = pd.DataFrame(columns=["user_id", "username", "first_name", "last_name"])
         df.to_excel(personal_user_file, index=False)
 
-# Function to add user to Excel if not exist
 def add_personal_user(user):
     ensure_excel_file()
 
@@ -61,13 +60,11 @@ def add_personal_user(user):
         ]
         df.to_excel(personal_user_file, index=False)
 
-
 if os.path.exists(RegisteredGroupfile):
     df = pd.read_excel(RegisteredGroupfile)
     registered_groups = set(df["groupid"].dropna().astype(str).tolist())
 else:
     registered_groups = set()
-
 
 if os.path.exists(group_data_file):
     with open(group_data_file, "r") as f:
@@ -119,7 +116,6 @@ async def save_groups():
 
     await asyncio.to_thread(process_file)
 
-    
 def load_groups():
     global registered_groups
     if os.path.exists(RegisteredGroupfile):
@@ -128,11 +124,9 @@ def load_groups():
     else:
         registered_groups = set()
 
-
 def save_group_data():
     with open(group_data_file, "w") as f:
         json.dump(group_data, f)
-
 
 newuploadedexcelfile = "Data/SYNO5.xlsx"
 quiz_state = {}
@@ -157,7 +151,6 @@ isNewQuizStarted =1
 used_srnos = set()
 difficulty_message = "subject"
 
-
 def get_chat_state(chat_id):
     if chat_id not in quiz_state:
         quiz_state[chat_id] = {
@@ -166,7 +159,6 @@ def get_chat_state(chat_id):
             "correct_users": {},
         }
     return quiz_state[chat_id]
-
 
 def reset_used_srnos():
     global used_srnos
@@ -192,7 +184,7 @@ def load_scores():
     workbook.close()
     return scores
 
-def load_quiz_data(file_path, selected_poll_count):
+async def load_quiz_data(file_path, selected_poll_count):
     global used_srnos
     try:
         df = pd.read_excel(file_path)
@@ -211,7 +203,6 @@ def load_quiz_data(file_path, selected_poll_count):
         for _, row in selected_rows.iterrows():
             truncated_flag = False  # flag if any option/answer is truncated
 
-            # Process options
             options = []
             for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
                 if isinstance(opt, str) and len(opt) > 100:
@@ -261,7 +252,6 @@ async def forceregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text("Error while force registering the group.")
        
-
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     chat = update.effective_chat
@@ -726,7 +716,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
 )
         
         await query.edit_message_text(text=message)
-        selected_polls = load_quiz_data(EXCEL_FILE, selected_poll_count)
+        selected_polls = await load_quiz_data(EXCEL_FILE, selected_poll_count)
         if not quiz_state[chat_id]["is_active"]:
             return
         task = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
@@ -769,7 +759,7 @@ async def handle_New_button_click(update: Update, context: ContextTypes.DEFAULT_
         )
 
         await query.edit_message_text(text=message)
-        selected_polls = load_quiz_data(EXCEL_FILE, selected_poll_count)
+        selected_polls = await load_quiz_data(EXCEL_FILE, selected_poll_count)
         if not quiz_state[chat_id]["is_active"]:
             return
         if chat_id in quiz_tasks:
@@ -976,7 +966,6 @@ async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error in top1grp_scorer: {e}")
 
-
 def update_user_score(chat_id, correct_users, file):
     """
     Optimized: Update user scores in Excel using Pandas (much faster).
@@ -1023,7 +1012,7 @@ async def calculate_scores(chat_id, context):
             return
         total_polls = len(quiz_state[chat_id]["polls"])
         if total_polls == 0:
-            await context.bot.send_message(chat_id, "No polls were conducted.")
+            await context.bot.send_message(chat_id, "No polls were conducted.if its Mistake please Complain there @currentaffairs\\_04")
             return
         msg = quiz_state[chat_id].get("calc_msg")
         if msg:
@@ -1072,8 +1061,6 @@ async def calculate_scores(chat_id, context):
         quiz_scores.pop(chat_id, None)
         await context.bot.send_message(chat_id, "⚠️ Error while calculating scores.")
         await context.bot.send_message(groupsendid, f"Error occured: {e}")
-
-
 
 def escape_markdown(text):
     """Escape special characters for Telegram MarkdownV2."""
@@ -1153,7 +1140,7 @@ async def all_time_topper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error in all_time_topper: {e}")
 
 async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global registered_groups
+    global registered_groups,broadcast_url
     if not os.path.exists(RegisteredGroupfile):
         await update.message.reply_text("❗️ No registered groups found.")
         return
@@ -1170,7 +1157,7 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     message = update.message.text.split(" ", 1)[1]
-    start_url = "https://t.me/slizzyy_bot?start=start"
+    start_url = broadcast_url 
     keyboard = [[InlineKeyboardButton("Send Now", url=start_url)]]
     async def send_to_group(gid):
         gid_str = str(gid)
@@ -1215,7 +1202,22 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"✅ Custom message sent to {count} groups.")
 
-    
+async def add_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    global broadcast_url
+    if chat_id != botManagementGroupId:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Send a URL.\nExample:\n/addUrl https://t.me/yourbot")
+        return
+
+    newUrl = context.args[0]
+
+    broadcast_url = newUrl
+
+    await update.message.reply_text(f"✅ Broadcast URL updated:\n{newUrl}")
+   
 async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     global registered_groups
@@ -1289,7 +1291,6 @@ async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"✅ Message sent to {count} groups.")
 
-
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
     chat = update.effective_chat
@@ -1335,7 +1336,6 @@ async def add_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("Invalid input. Please enter a numeric value for the timer.")
 
-
 async def show_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
@@ -1369,7 +1369,6 @@ async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     group_data.setdefault(str(chat_id), {})["link"] = newuploadedexcelfile
     save_group_data()
     await update.message.reply_text("\u2705 Link set for the main group.")
-
 
 async def add_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global newuploadedexcelfile,Promotion

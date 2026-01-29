@@ -26,6 +26,7 @@ _{example}_
 
 💬 Now Create 2 Sentence on this Word!!💡
 """
+
 def shuffle_excel_rows_inplace(input_file: str):
     strategies = ["reverse", "reverse of 10 and 10", "random shuffle"]
     try:
@@ -53,7 +54,6 @@ def shuffle_all_files_inplace():
     for filename in ALLOWED_FILES:
         input_path = os.path.join("Data", f"{filename}.xlsx")
         shuffle_excel_rows_inplace(input_path)
-
 
 def get_next_unsent_word():
     df = pd.read_excel(WordoftheDay_excel_PATH)
@@ -95,7 +95,6 @@ async def scheduled_send_word(app):
     await send_word_of_the_day(DummyUpdate(), DummyContext())
     await shuffle_command(DummyUpdate2(), DummyContext())
     
-
 async def schedule_send_UpscTopic(app):
     
     class DummyMessage:
@@ -112,8 +111,6 @@ async def schedule_send_UpscTopic(app):
         bot = app.bot
 
     await schedule_send_Topic_of_the_day(DummyUpdate(), DummyContext())
-
-
 
 async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
     topicregistered_groups = set()
@@ -300,6 +297,7 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
     f"✅ Word of the Day sent to {count} groups: *{word_data['word']}*",
     parse_mode="Markdown"
     )
+
 async def is_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """Check if the user is admin/creator in the group."""
     chat = update.effective_chat
