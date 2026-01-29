@@ -757,7 +757,8 @@ async def handle_New_button_click(update: Update, context: ContextTypes.DEFAULT_
             "selectedtime": selected_time_limit,
             "active": True,
             "polls": [],
-            "is_active": True
+            "is_active": True,
+            "isSendInAllGroups":True,
         }
         
         message = (
@@ -1039,7 +1040,9 @@ async def calculate_scores(chat_id, context):
             quiz_scores.pop(chat_id, None)
             await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
             return
-        await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id], SCORE_FILE)
+        isSendInAllGroups = quiz_state.get(chat_id, {}).get("isSendInAllGroups", False)
+        if not isSendInAllGroups:
+            await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id], SCORE_FILE)
         
         df = await asyncio.to_thread(lambda: pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index").sort_values(by="score", ascending=False))
         leaderboard = "🏆 *Quiz Results* 🏆\n\n"
@@ -1057,8 +1060,9 @@ async def calculate_scores(chat_id, context):
             await msg.edit_text(leaderboard, parse_mode="MarkdownV2")
         except:
             await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
-        await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id],MNTH_SCORE_FILE)
-        for file in [SCORE_FILE, MNTH_SCORE_FILE]:
+        if not isSendInAllGroups:
+            await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id],MNTH_SCORE_FILE)
+            for file in [SCORE_FILE, MNTH_SCORE_FILE]:
                 with open(file, "rb") as f:
                     await context.bot.send_document(chat_id=groupsendid, document=f)
         quiz_state.pop(chat_id, None)

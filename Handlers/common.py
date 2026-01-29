@@ -233,13 +233,13 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
 
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
-        print("chat id error")
+        
         return
 
     word_data, df = get_next_unsent_word()
     if not word_data:
         await update.message.reply_text("✅ All words have already been sent.")
-        print("this run")
+        
         return
 
     message = WORD_OF_THE_DAY_TEMPLATE.format(**word_data)
@@ -247,12 +247,11 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
     to_remove = set()
     for group_id in list(registered_groups):
         try:
-            print(group_id)
             member = await context.bot.get_chat_member(chat_id=group_id, user_id=context.bot.id)
             if member.status in ['left', 'kicked']:
                 to_remove.add(group_id)
         except (Forbidden, BadRequest):
-            print("hello badrequest")
+            
             to_remove.add(group_id)
         except Exception as e:
             print(f"Error checking group {group_id}: {e}")
@@ -266,7 +265,7 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(chat_id=gid, text=message, parse_mode="Markdown")
             return True, gid
         except Exception as e:
-            print(f"Error sending to {gid}: {e}")
+            
             if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
                 return False, gid
             return None, gid

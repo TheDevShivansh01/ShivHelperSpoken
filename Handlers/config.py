@@ -88,9 +88,13 @@ DIFFICULTY_MAP = {
     'difficulty_type_techJava': ('Data/tech_java.xlsx', 'Java Language'),
     'difficulty_type_techPython': ('Data/tech_python.xlsx', 'Python Language'),
 
+    'difficulty_type_techfullforms': ('Data/fullform.xlsx', 'Fullform Questions'),
+
 
      #Nigeria
     'difficulty_nigeria_utme': ('Data/Nigeria_UTME.xlsx', 'UTME Questions'),
+    'difficulty_nigeria_biocell': ('Data/nigeria_physics_unitsMeasurement.xlsx', 'Living Organisms, Cell & Taxonomy Questions'),
+    'difficulty_nigeria_physicsunit': ('Data/Nigeria_UTME.xlsx', 'Units & Measurements, Scalars & Vectors, Dimensions Questions'),
     
 }
 def tech_keyboard():
@@ -131,20 +135,24 @@ def StartingSubject1():
     ]   
 def Nda_keyboard0():
     return [
+         [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
         [InlineKeyboardButton("Chemsitry PYQ", callback_data='difficulty_nda_chemistry')],
         [InlineKeyboardButton("Biology PYQ", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Geography PYQ", callback_data='difficulty_nda_geography')],
-        [InlineKeyboardButton("Physics PYQ", callback_data='difficulty_nda_physics')],
+       
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
 
 def nigeria_keyboard1():
     return [
         [InlineKeyboardButton("UTME Questions", callback_data='difficulty_nigeria_utme')],
+        [InlineKeyboardButton("Bio-Living organism & Cell", callback_data='difficulty_nigeria_biocell')],
+        [InlineKeyboardButton("Physics- Units,Scalar,Vector", callback_data='difficulty_nigeria_physicsunit')],
      
     ]  
 def Nda_keyboard1():
     return [
+         [InlineKeyboardButton("Physics PYQ", callback_data='difficulty_nda_physics')],
         [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
         [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
         [InlineKeyboardButton("Active-passive", callback_data='difficulty_acitvepassive_nda')],
@@ -156,6 +164,7 @@ def New_addedTopics():
     return [
         [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
         [InlineKeyboardButton("python", callback_data='difficulty_type_techPython')],
+        [InlineKeyboardButton("Fullforms", callback_data='difficulty_type_techfullforms')],
         [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
         [InlineKeyboardButton("Artificial Intelligence", callback_data='type_techAi')],
         [InlineKeyboardButton("Cyber Security", callback_data='type_techCyber')],
@@ -173,12 +182,12 @@ def Nda_keyboard2():
     ]
 def Topic_Kb0():
     return [
+         [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
         [InlineKeyboardButton("Country-Capitals", callback_data='difficulty_capitalcountry')],
         [InlineKeyboardButton("Geography", callback_data='difficulty_nda_geography')],
         [InlineKeyboardButton("Complete Biology", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Blood Relation", callback_data='difficulty_bloodrelation')],
         [InlineKeyboardButton("World First", callback_data='difficulty_worldtop')],
-        [InlineKeyboardButton("Indian Polity", callback_data='difficulty_indianPolity')],
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_topic1')]
     ]        
 
@@ -196,12 +205,12 @@ def Topic_Kb1():
 
 def Upsc_keyboard0():
     return [
+         [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
         [InlineKeyboardButton("IP-The President", callback_data='difficulty_upscpresident')],
         [InlineKeyboardButton("GS-Previous Year Paper", callback_data='difficulty_upscpreviousyear')],
         [InlineKeyboardButton("The Hindu Vocab", callback_data='difficulty_thehindu')],
         [InlineKeyboardButton("History", callback_data='difficulty_upschistory')],
-        [InlineKeyboardButton("Science Tech", callback_data='difficulty_upscscience')],
-        [InlineKeyboardButton("Revolt of 1857", callback_data='difficulty_upscrevolt1857')],       
+        [InlineKeyboardButton("Science Tech", callback_data='difficulty_upscscience')],     
         [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc1')],
     ]  
 
@@ -209,13 +218,14 @@ def Upsc_keyboard1():
     return [
         [InlineKeyboardButton("Early Nationalism", callback_data='difficulty_upscearlynationalism')],
         [InlineKeyboardButton("Struggle for swaraj", callback_data='difficulty_upscstruggleforswaraj')],
-        [InlineKeyboardButton("IP-DPSP", callback_data='difficulty_upscDPSP')],
+        [InlineKeyboardButton("Revolt of 1857", callback_data='difficulty_upscrevolt1857')],   
         [InlineKeyboardButton("IP-Seperation of Power", callback_data='difficulty_upscseperationofpower')],
         [InlineKeyboardButton("Union and State Function and Resp", callback_data='difficulty_upscunionandstatefunction')],        
         [InlineKeyboardButton("🏎️  Previous ", callback_data='type_Upsc0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_Upsc2')],
     ]  
 def Upsc_keyboard2():
     return [
+        [InlineKeyboardButton("IP-DPSP", callback_data='difficulty_upscDPSP')],
          [InlineKeyboardButton("IP- Parliament", callback_data='difficulty_parliament')],
          [InlineKeyboardButton("IP -Primeminister", callback_data='difficulty_primeminister')],
         [InlineKeyboardButton("IP-Judiciary System", callback_data='difficulty_judiciarysystem')], 
@@ -224,6 +234,7 @@ def Upsc_keyboard2():
 def Topic_Kb2():
     return [
         
+        [InlineKeyboardButton("Indian Polity", callback_data='difficulty_indianPolity')],
         [InlineKeyboardButton("Indus Valley Civilization", callback_data='difficulty_indusvalley')],
         [InlineKeyboardButton("Maurya Empire", callback_data='difficulty_Mauryaempire')],
         [InlineKeyboardButton("Pre Maurya Period", callback_data='difficulty_PreMaurya')],
@@ -235,7 +246,7 @@ def Topic_Kb2():
 
                                   
 ALLOWED_FILES = {
-    "SYNO5","countryAndCity","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection5","basic_shortidiom",
+    "SYNO5","fullform","countryAndCity","word_meaning", "IPJudicialSystem","IPParliament", "IPPrimeminister","Antonyms5","spellCorrection5","basic_shortidiom",
     "Nda_FillinTheBlanks","Nda_Idiom","English_Preposition","Nda_OneWord","thehindu","CGL_English","CGL_GK","AncientHistory",
     "MedivalHistory","ModernHistory","BloodRelation","BookWriter","CGL_Reasoning","CGL_SSC_Synonyms","India_GS","IndianPolity",
     "Indus_Valley","ArtandCulture","BeginingOfModernAge","IndianConstitution","mauryaEmpire","PreMauryaPeriod","SangamPeriod",
