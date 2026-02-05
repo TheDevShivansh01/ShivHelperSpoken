@@ -93,8 +93,10 @@ DIFFICULTY_MAP = {
 
      #Nigeria
     'difficulty_nigeria_utme': ('Data/Nigeria_UTME.xlsx', 'UTME Questions'),
-    'difficulty_nigeria_biocell': ('Data/nigeria_physics_unitsMeasurement.xlsx', 'Living Organisms, Cell & Taxonomy Questions'),
-    'difficulty_nigeria_physicsunit': ('Data/Nigeria_UTME.xlsx', 'Units & Measurements, Scalars & Vectors, Dimensions Questions'),
+    'difficulty_nigeria_biocell': ('Data/nigeria_biology_cell.xlsx', 'Living Organisms, Cell & Taxonomy Questions'),
+    'difficulty_nigeria_physicsunit': ('Data/nigeria_physics_unitsMeasurement.xlsx', 'Units & Measurements, Scalars & Vectors, Dimensions Questions'),
+    'difficulty_nigeria_englishNouns':  ('Data/nigeria_english_nounsandPronounsfill.xlsx', 'English - Nouns and Pronouns'), 
+    'difficulty_nigeria_chemistryMatter': ('Data/nigeria_chemistry_matter_seperatingtechnique.xlsx', 'Chemistry _ Mattar and Seperating Technique'),
     
 }
 def tech_keyboard():
@@ -148,6 +150,8 @@ def nigeria_keyboard1():
         [InlineKeyboardButton("UTME Questions", callback_data='difficulty_nigeria_utme')],
         [InlineKeyboardButton("Bio-Living organism & Cell", callback_data='difficulty_nigeria_biocell')],
         [InlineKeyboardButton("Physics- Units,Scalar,Vector", callback_data='difficulty_nigeria_physicsunit')],
+        [InlineKeyboardButton("English- Nouns & Pronouns", callback_data='difficulty_nigeria_englishNouns')],
+        [InlineKeyboardButton("Chemistry- Matter & Seperating", callback_data='difficulty_nigeria_chemistryMatter')],
      
     ]  
 def Nda_keyboard1():

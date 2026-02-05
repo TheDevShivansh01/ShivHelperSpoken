@@ -1059,7 +1059,6 @@ async def calculate_scores(chat_id, context):
     except Exception as e:
         quiz_state.pop(chat_id, None)
         quiz_scores.pop(chat_id, None)
-        await context.bot.send_message(chat_id, "⚠️ Error while calculating scores.")
         await context.bot.send_message(groupsendid, f"Error occured: {e}")
 
 def escape_markdown(text):
