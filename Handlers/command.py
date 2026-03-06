@@ -1,7 +1,7 @@
 from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest, Forbidden, TimedOut
-from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,nigeria_keyboard1,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
+from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Sample_mtsKeyboard0,Sample_cdsKeyboard0,SamplePaper_keyboard1,nigeria_keyboard1,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
 import os
 import json
 import pandas as pd
@@ -12,8 +12,8 @@ from collections import defaultdict
 import asyncio,re,random,time
 
 
-TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
-#TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'   #testing bot
+#TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
+TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'   #testing bot
 BOT_USERNAME: Final = '@slizzyy_bot'
 
 ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1001817635995]
@@ -25,6 +25,9 @@ SCORE_FILE="UserScore/user_scores.xlsx"
 groupsendid = -1002114430690
 botManagementGroupId =  -1002359766306
 CHANNEL_ID = "-1002234035497"
+sampleCode = "PYA1"
+samplePaperName = "CGL"
+samplePaperType ="GI"
 new_timer = 20
 Promotion = False
 final_poll_responses = {}
@@ -147,9 +150,11 @@ quiz_kick= False
 quiz_tasks = {}
 StudyStuffgrp=False
 commandfunctionpass = 1
+isSamplePaper = False
 isNewQuizStarted =1
 used_srnos = set()
 difficulty_message = "subject"
+sampleCode = "PYA1"
 
 def get_chat_state(chat_id):
     if chat_id not in quiz_state:
@@ -188,7 +193,6 @@ async def load_quiz_data(file_path, selected_poll_count):
     global used_srnos
     try:
         df = pd.read_excel(file_path)
-        # Strip whitespace
         for col in df.select_dtypes(include="object").columns:
             df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
 
@@ -201,7 +205,50 @@ async def load_quiz_data(file_path, selected_poll_count):
 
         polls = []
         for _, row in selected_rows.iterrows():
-            truncated_flag = False  # flag if any option/answer is truncated
+            truncated_flag = False 
+
+            options = []
+            for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
+                if isinstance(opt, str) and len(opt) > 100:
+                    options.append(opt[:100])
+                    truncated_flag = True
+                else:
+                    options.append(opt)
+
+            answer = row["answer"]
+            if isinstance(answer, str) and len(answer) > 100:
+                answer = answer[:100]
+                truncated_flag = True
+
+            meaning = row.get("meaning", "nan")
+            if truncated_flag:
+                meaning = f"{meaning}\n⚠ Option/Answer text reduced due to length limit"
+
+            random.shuffle(options)
+
+            poll = {
+                "question": row["question"][:1000], 
+                "options": options,
+                "correct_answer": answer,
+                "meaning": meaning,
+                "comprehension":"nan"
+            }
+            polls.append(poll)
+        return polls
+
+    except Exception as e:
+        print(e)
+
+async def load_exam_quiz_data(file_path, sampleCode,samplePaperType):
+    global used_srnos
+    try:
+        df = pd.read_excel(file_path)
+        text_cols = df.select_dtypes(include="object").columns
+        df[text_cols] = df[text_cols].map(lambda x: x.strip() if isinstance(x, str) else x)
+        filtered_rows = df[(df["samplepaper"] == sampleCode) & (df["topic"] == samplePaperType)]
+        polls = []
+        for _, row in filtered_rows.iterrows():
+            truncated_flag = False  
 
             options = []
             for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
@@ -217,19 +264,16 @@ async def load_quiz_data(file_path, selected_poll_count):
                 answer = answer[:100]
                 truncated_flag = True
 
-            # Meaning handling
-            meaning = row.get("meaning", "nan")
-            if truncated_flag:
-                meaning = f"{meaning}\n⚠ Option/Answer text reduced due to length limit"
-
-            # Shuffle options
+            comprehension = row.get("comprehension", "nan")
+           
             random.shuffle(options)
 
             poll = {
-                "question": row["question"][:1000],  # safe bound for question
+                "question": row["question"][:1000], 
                 "options": options,
                 "correct_answer": answer,
-                "meaning": meaning
+                "meaning": "nan",
+                "comprehension": comprehension
             }
             polls.append(poll)
         return polls
@@ -369,7 +413,7 @@ async def handle_updatesizzlescore(update: Update, context: ContextTypes.DEFAULT
 
 async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        global EXCEL_FILE, Quiz_grammar_type,StudyStuffgrp,difficulty_message
+        global EXCEL_FILE, Quiz_grammar_type,samplePaperName,StudyStuffgrp,difficulty_message,sampleCode
         query = update.callback_query
         username = query.from_user.username or query.from_user.first_name
         await query.answer()
@@ -391,8 +435,14 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
             await query.edit_message_text("⚠️ Invalid selection.")
             return
 
-        EXCEL_FILE, difficulty_message = DIFFICULTY_MAP[data]
+       
+        item = DIFFICULTY_MAP[data]
+        EXCEL_FILE = item[0]
+        difficulty_message = item[1]
+        sampleCode = item[2] if len(item) == 4 else 'PYA1'
+        samplePaperName = item[3] if len(item) == 4 else 'CGL'
         Quiz_grammar_type = difficulty_message
+
         
         if(Quiz_grammar_type !='Reasoning' and Quiz_grammar_type !='Maths'):
             time_keyboard = [
@@ -409,6 +459,15 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
             [InlineKeyboardButton("45 Seconds", callback_data='time_45')],
             [InlineKeyboardButton("60 Seconds", callback_data='time_60')],
             [InlineKeyboardButton("90 Seconds", callback_data='time_90')],
+            ]
+        if(isSamplePaper):
+            print("samplepaper")
+            time_keyboard = [
+            [InlineKeyboardButton("20 Seconds", callback_data='sampletime_20')],
+            [InlineKeyboardButton("25 Seconds", callback_data='sampletime_25')],
+            [InlineKeyboardButton("30 Seconds", callback_data='sampletime_30')],
+            [InlineKeyboardButton("45 Seconds", callback_data='sampletime_45')],
+            [InlineKeyboardButton("60 Seconds", callback_data='sampletime_60')],
             ]
         reply_markup = InlineKeyboardMarkup(time_keyboard)
         if not quiz_state[chat_id]["is_active"]:
@@ -428,6 +487,7 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
                 print(e)
 
 async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global isSamplePaper
     try:
         query = update.callback_query
         username = query.from_user.username or query.from_user.first_name
@@ -437,6 +497,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         difficulty_message = ''
 
         if query.data == 'type_NDA0':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(Nda_keyboard0())
             try:
                 await query.edit_message_text(f'@{username} selected NDA-CDS Phase 1 \n Select the Grammar Quiz type:', reply_markup=reply_markup)
@@ -446,6 +507,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
 
         elif query.data == 'type_NDA1':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(Nda_keyboard1())
             try:
                 await query.edit_message_text(f'@{username} selected NDA-CDS Phase 2 \n\n Select the Grammar Quiz type:', reply_markup=reply_markup)
@@ -454,6 +516,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
 
         elif query.data == 'type_NDA2':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(Nda_keyboard2())
             try:
                 await query.edit_message_text(f'@{username} selected NDA-CDS Phase 2 \n\n Select the Grammar Quiz type:', reply_markup=reply_markup)
@@ -461,19 +524,30 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected NDA-CDS Phase 2\n Select the Grammar Quiz type:', reply_markup=reply_markup)
         elif query.data == 'type_tech':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(tech_keyboard())
             try:
                 await query.edit_message_text(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
         elif query.data == 'type_nigeria':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(nigeria_keyboard1())
             try:
                 await query.edit_message_text(f'@{username} selected Nigeria Country \n\n Select the Further Quiz :', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Nigeria Country \n\n Select the Further Quiz:', reply_markup=reply_markup)
         
+        elif query.data == 'type_samplePaper':
+            reply_markup = InlineKeyboardMarkup(SamplePaper_keyboard1())
+            isSamplePaper = True
+            try:
+                await query.edit_message_text(f'@{username} selected Sample Papers \n\n Select the Further Quiz :', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected Sample Papers \n\n Select the Further Quiz:', reply_markup=reply_markup)
+       
         elif query.data == 'type_startsubj0':
+            isSamplePaper = False
             try:
                  await query.edit_message_text( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject0()))
             except (BadRequest, Forbidden, TimedOut) as e:
@@ -481,6 +555,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
 
         elif query.data == 'type_startsubj1':
+            isSamplePaper = False
             try:
                  await query.edit_message_text( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject1()))
             except (BadRequest, Forbidden, TimedOut) as e:
@@ -494,12 +569,14 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
 
         elif query.data == 'type_topic1':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(Topic_Kb1())
             try:
                 await query.edit_message_text(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
         elif query.data == 'type_newtopic':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(New_addedTopics())
             try:
                 await query.edit_message_text(f'@{username} selected New added Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
@@ -509,6 +586,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
 
         elif query.data == 'type_topic2':
+            isSamplePaper = False
             reply_markup = InlineKeyboardMarkup(Topic_Kb2())
             try:
                 await query.edit_message_text(f'@{username} selected Topic Phase 3 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
@@ -516,6 +594,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} selected Topic Phase 3 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
         elif query.data == 'type_BASIC1':
+            isSamplePaper = False
             
             difficulty_keyboard = [
                 [InlineKeyboardButton("Fill in the Blanks 2.0", callback_data='difficulty_fillblank_nda')],
@@ -533,6 +612,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
        
         
         elif query.data == 'type_BASIC':
+            isSamplePaper = False
             
             difficulty_keyboard = [
                 [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],
@@ -549,7 +629,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)
         elif query.data == 'type_Upsc2':
-            
+            isSamplePaper = False
             reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard2())
             
             try:
@@ -559,7 +639,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
        
         elif query.data == 'type_Upsc1':
-            
+            isSamplePaper = False
             reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard1())
             
             try:
@@ -568,7 +648,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
         elif query.data == 'type_reasoning':
-            
+            isSamplePaper = False
             reply_markup = reply_markup=InlineKeyboardMarkup(Reasoning_Kb0())
             
             try:
@@ -578,7 +658,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
         
         elif query.data == 'type_Upsc0':
-            
+            isSamplePaper = False
             reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard0())
             
             try:
@@ -587,7 +667,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
         elif query.data == 'type_Cgl':
-            
+            isSamplePaper = False
             difficulty_keyboard = [
                 [InlineKeyboardButton("PYQ Synonyms", callback_data='difficulty_synonyms')],
                 [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')],
@@ -603,7 +683,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
        
         elif query.data == 'type_Neet':
-            
+            isSamplePaper = False
             difficulty_keyboard = [
                 [InlineKeyboardButton("Chemistry", callback_data='difficulty_neetchemistry')]
             ]
@@ -614,7 +694,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
             except (BadRequest, Forbidden, TimedOut) as e:
                 await query.message.chat.send_message(f'@{username} Selected  Jee and  Neet \n Select the Quiz type:', reply_markup=reply_markup)
         elif query.data == 'type_History':
-            
+            isSamplePaper = False
             difficulty_keyboard = [
                 [InlineKeyboardButton("Ancient History", callback_data='difficulty_historyAncient')],
                 [InlineKeyboardButton("Medieval History", callback_data='difficulty_historyMedieval')],
@@ -629,7 +709,34 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
     except (BadRequest, Forbidden, TimedOut) as e:
                 print(e)
-          
+
+async def handle_SamplePaper_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global isSamplePaper
+    try:
+        query = update.callback_query
+        username = query.from_user.username or query.from_user.first_name
+
+        await query.answer()
+        
+        isSamplePaper = True
+        if query.data == 'sample_MTS':
+            reply_markup = InlineKeyboardMarkup(Sample_mtsKeyboard0())
+            try:
+                await query.edit_message_text(f'@{username} selected MTS Previous year Paper \n Select the Futher Quiz type:', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected MTS Previous year Paper \n Select the Further Quiz type:', reply_markup=reply_markup)
+
+        elif query.data == 'sample_CDS':
+            reply_markup = InlineKeyboardMarkup(Sample_cdsKeyboard0())
+            try:
+                await query.edit_message_text(f'@{username} selected CDS Previous year Paper \n\n Select the Further Quiz type:', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected CDS Previous year Paper\n\n Select the Further Quiz type:', reply_markup=reply_markup)
+        
+        
+    except (BadRequest, Forbidden, TimedOut) as e:
+                print(e)
+                    
 async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         global selected_time_limit
@@ -670,7 +777,7 @@ async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("50 Round", callback_data='50')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+        print("time selection")
         if not quiz_state[chat_id]["is_active"]:
             try:
                 await query.edit_message_text(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
@@ -688,9 +795,119 @@ async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TY
     except (BadRequest, Forbidden, TimedOut) as e:
                 print(e)
 
+async def handle_samplePaperType_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        global selected_time_limit
+        query = update.callback_query
+        username = query.from_user.username or query.from_user.first_name
+        chat_id = query.message.chat.id
+      
+        await query.answer()
+        time_mapping = {
+            'sampletime_20': 20,
+            'sampletime_25': 25,
+            'sampletime_30': 30,
+            'sampletime_45': 45,
+            'sampletime_60': 60,
+        }
+        selected_time_limit = time_mapping.get(query.data, 10)
+
+        if chat_id not in quiz_state:
+            quiz_state[chat_id] = {"active": False}
+        quiz_state[chat_id]["selectedtime"] =selected_time_limit
+        
+        if(samplePaperName=="MTS"):
+            keyboard = [
+            [InlineKeyboardButton("Maths", callback_data='sampletype_Maths')],
+             [InlineKeyboardButton("Reasoning", callback_data='sampletype_Reasoning')],
+            [InlineKeyboardButton("General Awareness", callback_data='sampletype_GA')],
+            [InlineKeyboardButton("General English", callback_data='sampletype_English')],
+            ]
+        elif(samplePaperName =="CDS"):
+             keyboard = [
+            [InlineKeyboardButton("English", callback_data='sampletype_English')],
+            ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        if not quiz_state[chat_id]["is_active"]:
+            try:
+                await query.edit_message_text(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
+            
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
+        else:
+            try:
+                await query.edit_message_text(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n Select The Sample Paper Section?', reply_markup=reply_markup)
+            
+            except (BadRequest, Forbidden, TimedOut) as e:
+                await query.message.chat.send_message(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n How many rounds?', reply_markup=reply_markup)
+       
+
+    except (BadRequest, Forbidden, TimedOut) as e:
+                print(e)
+
+async def handle_SamplePaper_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        global quiz_state,quiz_tasks,sampleCode,selected_time_limit
+        query = update.callback_query
+        chat_id = query.message.chat_id  
+        username = query.from_user.username or query.from_user.first_name
+        if chat_id not in quiz_state:
+            quiz_state[chat_id] = {
+                "is_active": True,
+                "active":True,
+                "polls": [],
+                "scores": {},  
+                "quiz_kick": False,  
+                "cancel_active": False,  
+                "consecutive_unanswered": 0,
+                "selected_poll_count": 0,  
+            }
+        await query.answer()
+
+        sampleType_mapping = {
+            'sampletype_Maths': 'Maths',
+            'sampletype_Reasoning': 'Reasoning',
+            'sampletype_GA': 'GA',
+            'sampletype_English': 'English',
+        }
+        samplePaperType = sampleType_mapping.get(query.data, 'English')
+        if chat_id not in quiz_state:
+            quiz_state[chat_id] = {"active": False}
+        
+        if not quiz_state[chat_id]["active"]:
+            await query.answer("Please start a new quiz with /startquiz")
+            return
+          
+        if not quiz_state[chat_id]["is_active"]:
+            return
+        quiz_state[chat_id]["active"] = True
+        quiz_state[chat_id]["polls"] = []
+         
+
+        message = (
+    f"🚀 @{username} has started the {difficulty_message} quiz!\n\n"
+    f"🕒 Time per question: {selected_time_limit} seconds\n"
+    f"Get ready — the quiz begins now! 🎯"
+)
+        
+        await query.edit_message_text(text=message)
+        if(isSamplePaper):
+            selected_polls = await load_exam_quiz_data(EXCEL_FILE, sampleCode,samplePaperType)
+            quiz_state[chat_id]["total_rounds"] = len(selected_polls)
+        
+        
+        if not quiz_state[chat_id]["is_active"]:
+            return
+        task = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
+        quiz_tasks[chat_id] = task
+
+    except Exception as e:
+        print(f"Error in handle_SamplePaper_button_click: {e}")
+
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        global quiz_state,quiz_tasks
+        global quiz_state,quiz_tasks,sampleCode
         query = update.callback_query
         chat_id = query.message.chat_id  # Identify which chat is running the quiz
         username = query.from_user.username or query.from_user.first_name
@@ -704,10 +921,9 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         selected_poll_count = int(query.data)   #quizcount
         if not quiz_state[chat_id]["is_active"]:
             return
-        quiz_state[chat_id]["total_rounds"] =  selected_poll_count
         quiz_state[chat_id]["active"] = True
         quiz_state[chat_id]["polls"] = []
- 
+        
         message = (
     f"🚀 @{username} has started the {difficulty_message} quiz!\n\n"
     f"🕒 Time per question: {selected_time_limit} seconds\n"
@@ -715,8 +931,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     f"Get ready — the quiz begins now! 🎯"
 )
         
-        await query.edit_message_text(text=message)
+        
         selected_polls = await load_quiz_data(EXCEL_FILE, selected_poll_count)
+        quiz_state[chat_id]["total_rounds"] = selected_poll_count
+        await query.edit_message_text(text=message)
         if not quiz_state[chat_id]["is_active"]:
             return
         task = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
@@ -793,13 +1011,16 @@ async def send_quiz_polls(chat_id, polls, context):
                 options = [stringify(opt) for opt in poll.get('options', [])]
                 correct_answer = stringify(poll.get('correct_answer'))
                 meaning = stringify(poll.get('meaning'))
+                comprehension = stringify(poll.get('comprehension'))
 
                 display_question = question
                 if len(question) > 253:
                     await context.bot.send_message(chat_id, text=question)
                     display_question = "Choose Correct Answer"
-
-                # Attempt to send poll
+                
+                if comprehension and str(comprehension).strip().lower() != "nan":
+                    await context.bot.send_message(chat_id, text=f"Comprehension: {comprehension}")
+                
                 poll_message = await context.bot.send_poll(
                     chat_id=chat_id,
                     question=f"{i+1}/{len(polls)}: {display_question}",
@@ -831,7 +1052,8 @@ async def send_quiz_polls(chat_id, polls, context):
                 await context.bot.send_message(chat_id, text="❗ I don't have permission to create polls in this group.\nPlease make me admin or allow 'Create Polls' permission.")
                 break
             except Exception as e:
-                print(f"Error sending poll: {e}")
+                
+                print(f"Error in send_quiz_polls poll: {e}")
 
         if quiz_state.get(chat_id, {}).get("active", False):
             await calculate_scores(chat_id, context)
@@ -1005,14 +1227,15 @@ def update_user_score(chat_id, correct_users, file):
         print(f"Error updating scores: {e}")
 
 async def calculate_scores(chat_id, context):
-    global groupsendid
+    global groupsendid,isSamplePaper
     try:
+        isSamplePaper = False
         if chat_id not in quiz_state or "polls" not in quiz_state[chat_id]:
             await context.bot.send_message(chat_id, "No quiz data found.")
             return
         total_polls = len(quiz_state[chat_id]["polls"])
         if total_polls == 0:
-            await context.bot.send_message(chat_id, "No polls were conducted.if its Mistake please Complain there @currentaffairs\\_04")
+            await context.bot.send_message(chat_id, "No polls were conducted.if its Mistake please Complain there @currentaffairs_04")
             return
         msg = quiz_state[chat_id].get("calc_msg")
         if msg:

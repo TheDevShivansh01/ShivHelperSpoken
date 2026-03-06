@@ -11,7 +11,8 @@ DIFFICULTY_MAP = {
     'difficulty_sentcorr': ('Data/sentenceCorr4.xlsx', 'Sentence Correction'),
     'difficulty_shortIdiom': ('Data/basic_shortidiom.xlsx', 'Daily Life Idioms'),
 
-    # NEET
+
+    # NEET  
     'difficulty_neetchemistry': ('Data/Neet_Chemistry.xlsx', 'Chemistry'),
 
     # Topics
@@ -98,7 +99,24 @@ DIFFICULTY_MAP = {
     'difficulty_nigeria_englishNouns':  ('Data/nigeria_english_nounsandPronounsfill.xlsx', 'English - Nouns and Pronouns'), 
     'difficulty_nigeria_chemistryMatter': ('Data/nigeria_chemistry_matter_seperatingtechnique.xlsx', 'Chemistry _ Mattar and Seperating Technique'),
     
+    
+     #SAmplePAper
+    'difficulty_mtsPaper1': ('Data/MTS_PYQ_Final.xlsx', 'MTS Previous Year Paper 2024 Set 1','PYA1','MTS'),
+    'difficulty_mtsPaper2': ('Data/MTS_PYQ_Final.xlsx', 'MTS Previous Year Paper 2024 Set 2','PYA2','MTS'),
+    'difficulty_cdsPaper1': ('Data/cds_2024a1.xlsx', 'CDS Previous Year Paper 2024 Set 1','CDSPYA1','CDS'),
+   
 }
+def Sample_mtsKeyboard0():
+    return [
+        [InlineKeyboardButton("Previous Paper 1", callback_data='difficulty_mtsPaper1')], 
+         [InlineKeyboardButton("Previous Paper 2", callback_data='difficulty_mtsPaper2')], 
+    ]
+
+def Sample_cdsKeyboard0():
+    return [
+        [InlineKeyboardButton("Previous Paper 1 English", callback_data='difficulty_cdsPaper1')], 
+    ]
+
 def tech_keyboard():
     return [
         [InlineKeyboardButton("Artificial Intelligence", callback_data='difficulty_type_techAi')],
@@ -115,9 +133,17 @@ def Reasoning_Kb0():
         [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')]
     ]
 
+def SamplePaper_keyboard1():
+    return [
+        [InlineKeyboardButton("MTS Previous Year Paper", callback_data='sample_MTS')],
+        [InlineKeyboardButton("CDS Previous Year Paper", callback_data='sample_CDS')], 
+    ]
+
+
 
 def StartingSubject0():
     return [
+        [InlineKeyboardButton("Previous Year Papers", callback_data='type_samplePaper')],
         [InlineKeyboardButton("Newly Added Topic", callback_data='type_newtopic')],
         [InlineKeyboardButton("Technical/Engineering", callback_data='type_tech')],
         [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
@@ -132,16 +158,14 @@ def StartingSubject1():
     [InlineKeyboardButton("SSC - CGL/CHSL", callback_data='type_Cgl')],
     [InlineKeyboardButton("History", callback_data='type_History')],
     [InlineKeyboardButton("Jee and Neet", callback_data='type_Neet')],
-      [InlineKeyboardButton("UPSC", callback_data='type_Upsc0')],
     [InlineKeyboardButton("🏎️  Previous", callback_data='type_startsubj0')]
     ]   
 def Nda_keyboard0():
     return [
-         [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
+        [InlineKeyboardButton("Current Affairs Quiz", url="https://t.me/currentaffairs_04")],
         [InlineKeyboardButton("Chemsitry PYQ", callback_data='difficulty_nda_chemistry')],
         [InlineKeyboardButton("Biology PYQ", callback_data='difficulty_nda_bio')],
         [InlineKeyboardButton("Geography PYQ", callback_data='difficulty_nda_geography')],
-       
         [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
     ]        
 

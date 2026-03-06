@@ -1,10 +1,9 @@
 from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from Handlers.command import TOKEN,add_promo,botManagementGroupId,MNTH_SCORE_FILE, start_command,start_game_command,help_command,handle_difficulty_selection,handle_type_selection,handle_time_selection,handle_button_click,handle_New_button_click,handle_poll_answer,my_rank
-from Handlers.command import register_group,add_url,forceregister,month_topper,handle_allsizzlescore,topgrp_scorer,all_time_topper,cancel_quiz_command,handle_updatesizzlescore,handle_jsonFile,send_message,add_message,add_time,add_file,show_message,broadcast_message
+from Handlers.command import register_group,handle_samplePaperType_selection,handle_SamplePaper_selection,handle_SamplePaper_button_click,add_url,forceregister,month_topper,handle_allsizzlescore,topgrp_scorer,all_time_topper,cancel_quiz_command,handle_updatesizzlescore,handle_jsonFile,send_message,add_message,add_time,add_file,show_message,broadcast_message
 from Handlers.common import stopupsctopicCommand,allowupsctopicCommand,send_word_of_the_day,schedule_send_UpscTopic,scheduled_send_word,shuffle_all_files_inplace,shuffle_command
 import asyncio,datetime,calendar
 import pandas as pd
-
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 
@@ -38,7 +37,10 @@ def main():
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CallbackQueryHandler(handle_difficulty_selection, pattern='^difficulty_'))
     application.add_handler(CallbackQueryHandler(handle_type_selection, pattern='^type_'))
+    application.add_handler(CallbackQueryHandler(handle_SamplePaper_selection, pattern='^sample_'))
     application.add_handler(CallbackQueryHandler(handle_time_selection, pattern='^time_'))
+    application.add_handler(CallbackQueryHandler(handle_SamplePaper_button_click, pattern='^sampletype_'))
+    application.add_handler(CallbackQueryHandler(handle_samplePaperType_selection, pattern='^sampletime_'))
     application.add_handler(CallbackQueryHandler(handle_button_click, pattern=r'^\d+$'))
     application.add_handler(CallbackQueryHandler(handle_New_button_click, pattern= '^New_'))
     application.add_handler(PollAnswerHandler(handle_poll_answer))
