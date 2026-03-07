@@ -24,6 +24,8 @@ WORD_OF_THE_DAY_TEMPLATE = """
 ✍️ *Example*:
 _{example}_
 
+Join @currentaffairs_04 To Get Daily Current Affairs McQ
+
 💬 Now Create 2 Sentence on this Word!!💡
 """
 
