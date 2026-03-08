@@ -2,6 +2,7 @@ from Handlers.command import save_group_data,Promotion,RegisteredGroupfile,Regis
 from telegram import Update,InputFile
 from telegram.ext import  ContextTypes
 from Handlers.config import ALLOWED_FILES
+from html import escape
 import asyncio, json
 import pandas as pd
 import os, random
@@ -11,23 +12,24 @@ WordoftheDay_excel_PATH = "UserScore/wordoftheday.xlsx"
 Topic_EXCEL_PATH = "UserScore/gs1.xlsx"
 
 WORD_OF_THE_DAY_TEMPLATE = """
-📚 *Word of the Day* 📚
-       
-📝 Word: {word}
+📚 <b>Word of the Day</b> 📚
 
-📖 *Meaning*: _{meaning}_
+📝 <b>Word:</b> <i>{word}</i>
 
-🔁 *Synonyms*: _{synonyms}_
+📖 <b>Meaning:</b> <i>{meaning}</i>
 
-🚫 *Antonyms*: _{antonym}_
+🔁 <b>Synonyms:</b> <i>{synonyms}</i>
 
-✍️ *Example*:
-_{example}_
+🚫 <b>Antonyms:</b> <i>{antonym}</i>
 
-Join @currentaffairs_04 To Get Daily Current Affairs McQ
+✍️ <b>Example:</b> 
+<i>{example}</i>
 
-💬 Now Create 2 Sentence on this Word!!💡
+💬 Now create 2 sentences using this word! 💡
+
+<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
 """
+
 
 def shuffle_excel_rows_inplace(input_file: str):
     strategies = ["reverse", "reverse of 10 and 10", "random shuffle"]
@@ -157,11 +159,7 @@ async def schedule_send_Topic_of_the_day(update: Update, context: ContextTypes.D
     except Exception as e:
         print(f"❌ Failed to send Excel file to @mugroup_0404: {e}")
 
-    await context.bot.send_message( chat_id=botManagementGroupId,
-    text=
-    f"✅ UPSC Topic Sent to {count} groups",
-    parse_mode="Markdown"
-    )
+    await context.bot.send_message( chat_id=botManagementGroupId, text= f"✅ UPSC Topic Sent to {count} groups", parse_mode="Markdown")
 
 def create_daily_template():
     df = pd.read_excel(Topic_EXCEL_PATH)
@@ -223,10 +221,9 @@ async def shuffle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     global registered_groups, botManagementGroupId
-    print("send word of the dat")
+    
     if os.path.exists(RegisteredGroupfile):
                 with open(RegisteredGroupfile, 'rb') as file:
-                    print("file send")
                     await context.bot.send_document(chat_id=groupsendid, document=file)
 
 
@@ -240,9 +237,9 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("✅ All words have already been sent.")
         
         return
-
-    message = WORD_OF_THE_DAY_TEMPLATE.format(**word_data)
-
+    safe_data = {k: escape(str(v)) for k, v in word_data.items()}
+    message = WORD_OF_THE_DAY_TEMPLATE.format(**safe_data)
+    
     to_remove = set()
     for group_id in list(registered_groups):
         try:
@@ -261,10 +258,15 @@ async def send_word_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYP
     count = 0
     async def send_to_group(gid):
         try:
-            await context.bot.send_message(chat_id=gid, text=message, parse_mode="Markdown")
+            await context.bot.send_message(
+    chat_id=gid,
+    text=message,
+    parse_mode="HTML",
+    disable_web_page_preview=True
+)
             return True, gid
         except Exception as e:
-            
+            print("wee",e)
             if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
                 return False, gid
             return None, gid
