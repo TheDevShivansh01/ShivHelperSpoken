@@ -96,6 +96,7 @@ DIFFICULTY_MAP = {
     'difficulty_nigeria_utme': ('Data/Nigeria_UTME.xlsx', 'UTME Questions'),
     'difficulty_nigeria_biocell': ('Data/nigeria_biology_cell.xlsx', 'Living Organisms, Cell & Taxonomy Questions'),
     'difficulty_nigeria_physicsunit': ('Data/nigeria_physics_unitsMeasurement.xlsx', 'Units & Measurements, Scalars & Vectors, Dimensions Questions'),
+    'difficulty_nigeria_physicslinear': ('Data/nigeria_physicsLINEAR_MOTION_VELOCITY_TIME_GRAPH.xlsx', 'Linear motion, velocity time graph & motion under gravity'),
     'difficulty_nigeria_englishNouns':  ('Data/nigeria_english_nounsandPronounsfill.xlsx', 'English - Nouns and Pronouns'), 
     'difficulty_nigeria_chemistryMatter': ('Data/nigeria_chemistry_matter_seperatingtechnique.xlsx', 'Chemistry _ Mattar and Seperating Technique'),
     
@@ -174,6 +175,7 @@ def nigeria_keyboard1():
         [InlineKeyboardButton("UTME Questions", callback_data='difficulty_nigeria_utme')],
         [InlineKeyboardButton("Bio-Living organism & Cell", callback_data='difficulty_nigeria_biocell')],
         [InlineKeyboardButton("Physics- Units,Scalar,Vector", callback_data='difficulty_nigeria_physicsunit')],
+        [InlineKeyboardButton("Physics- LINEAR MOTION,VELOCITY-TIME", callback_data='difficulty_nigeria_physicslinear')],
         [InlineKeyboardButton("English- Nouns & Pronouns", callback_data='difficulty_nigeria_englishNouns')],
         [InlineKeyboardButton("Chemistry- Matter & Seperating", callback_data='difficulty_nigeria_chemistryMatter')],
      

@@ -27,9 +27,9 @@ WORD_OF_THE_DAY_TEMPLATE = """
 
 💬 Now create 2 sentences using this word! 💡
 
-<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
-"""
 
+"""
+#<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
 
 def shuffle_excel_rows_inplace(input_file: str):
     strategies = ["reverse", "reverse of 10 and 10", "random shuffle"]
