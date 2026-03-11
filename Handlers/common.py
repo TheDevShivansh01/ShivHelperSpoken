@@ -27,7 +27,7 @@ WORD_OF_THE_DAY_TEMPLATE = """
 
 💬 Now create 2 sentences using this word! 💡
 
-
+<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
 """
 #<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
 
