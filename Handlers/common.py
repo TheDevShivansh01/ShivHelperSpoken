@@ -27,7 +27,7 @@ WORD_OF_THE_DAY_TEMPLATE = """
 
 💬 Now create 2 sentences using this word! 💡
 
-<a href="https://youtu.be/fXH311_Nfn0"><i>SUBSCRIBE US TO SUPPORT</i></a>
+<a href="https://youtu.be/x7D9-5pvAbQ"><i>SUBSCRIBE US TO SUPPORT</i></a>
 """
 #<a href="https://t.me/currentaffairs_04"><b>Join For Current Affairs MCQS</b></a>
 
