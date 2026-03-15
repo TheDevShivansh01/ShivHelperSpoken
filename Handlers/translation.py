@@ -355,7 +355,7 @@ async def send_sentence(chat_id: int, context: ContextTypes.DEFAULT_TYPE, srno: 
         text=(
             f"📖 *Correct answer:* _{safe_prev}_\n\n"
             f"🌐 *Translate Next Sentence:*\n\n"
-            f"*Level:* {safe_label} | Pass: /next\n\n"
+            f"*Level:* {safe_label} For Pass: /next\n\n"
             f"🇮🇳 *{safe_hindi}*\n\n"
         ),
         parse_mode="MarkdownV2"
@@ -365,7 +365,7 @@ async def send_sentence(chat_id: int, context: ContextTypes.DEFAULT_TYPE, srno: 
         chat_id=chat_id,
         text=(
             f"🌐 *Translate this sentence into English:*\n\n"
-            f"*Level:* {safe_label} | Pass: /next\n\n"
+            f"*Level:* {safe_label} For Pass: /next\n\n"
             f"🇮🇳 *{safe_hindi}*\n\n"
         ),
         parse_mode="MarkdownV2"
@@ -390,13 +390,13 @@ async def start_translation_command(update: Update, context: ContextTypes.DEFAUL
             try:
                 await update.message.reply_text(
                 "⚠️ A translation game is already running here.\n"
-                "Use /next to continue or /cancel to stop."
+                "Use /next to continue or /stop to stop."
                )
             except Exception as ex:
                 await context.bot.send_message (chat_id=chat_id,
         text=(
             "⚠️ A translation game is already running here.\n"
-            "Use /next to continue or /cancel to stop."
+            "Use /next to continue or /stop to stop."
         ))
             return
 
