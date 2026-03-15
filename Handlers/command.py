@@ -1,67 +1,27 @@
-from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import  Application,filters, CommandHandler,MessageHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
-from telegram.error import BadRequest, Forbidden, TimedOut
-from Handlers.config import  DIFFICULTY_MAP,ALLOWED_FILES,Sample_mtsKeyboard0,Sample_cdsKeyboard0,SamplePaper_keyboard1,nigeria_keyboard1,Reasoning_Kb0,Upsc_keyboard2,tech_keyboard,Upsc_keyboard0,Upsc_keyboard1, New_addedTopics,StartingSubject0,StartingSubject1, Nda_keyboard0, Nda_keyboard1, Nda_keyboard2, Topic_Kb0, Topic_Kb1, Topic_Kb2
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import   ContextTypes
 import os
 import json
 import pandas as pd
-import openpyxl
 from typing import Final
-from openpyxl import load_workbook, Workbook
-from collections import defaultdict
-import asyncio,re,random,time
+import asyncio,re
 
 
-TOKEN: Final = '7938454369:AAHvTD7J-C2OozXpu4XQc-rvjQNOLhgrO6s'
+TOKEN: Final = '8613978044:AAFccWbuIxyBLgi4zduV1rE5MnqBBpLj6PM'
 #TOKEN: Final = '8357857623:AAH8uwRGnKmnaaH-RipXiCP5BPyE_bSKor4'   #testing bot
-BOT_USERNAME: Final = '@slizzyy_bot'
+BOT_USERNAME: Final = '@spoken_helper_bot'
 
 ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1001817635995]
-# EXCEL_FILE = 'Data/SYNO5.xlsx'
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_FILE = os.path.join(BASE_DIR, 'Data', 'SYNO5.xls')
-MNTH_SCORE_FILE="UserScore/MonthlyUserScore.xlsx"
-SCORE_FILE="UserScore/user_scores.xlsx"
 groupsendid = -1002114430690
 botManagementGroupId =  -1002359766306
 CHANNEL_ID = "-1002234035497"
-sampleCode = "PYA1"
-samplePaperName = "CGL"
-samplePaperType ="GI"
-new_timer = 20
-Promotion = False
-final_poll_responses = {}
-broadcast_url = "https://t.me/slizzyy_bot?start=start"
+registered_groups = set()
+broadcast_url = "https://t.me/spoken_helper_bot?start=start"
 RegisteredGroupfile = "UserScore/RegisteredGroups.xlsx"
+translation_excel_path = "UserScore/.xlsx"
 GROUPS_FILE = "groups.json"
 group_data_file = "group_data.json"
 
-personal_user_file ="UserScore/PersonalUsers.xlsx"
-
-def ensure_excel_file():
-    if not os.path.exists(personal_user_file):
-        df = pd.DataFrame(columns=["user_id", "username", "first_name", "last_name"])
-        df.to_excel(personal_user_file, index=False)
-
-def add_personal_user(user):
-    ensure_excel_file()
-
-    df = pd.read_excel(personal_user_file)
-
-    if "user_id" not in df.columns:
-        df = pd.DataFrame(columns=["user_id", "username", "first_name", "last_name"])
-
-    df["user_id"] = df["user_id"].astype(str)
-    userId = str(user.id)
-
-    if userId not in df["user_id"].values:
-        df.loc[len(df)] = [
-            userId,
-            user.username or "",
-            user.first_name or "",
-            user.last_name or ""
-        ]
-        df.to_excel(personal_user_file, index=False)
 
 if os.path.exists(RegisteredGroupfile):
     df = pd.read_excel(RegisteredGroupfile)
@@ -84,18 +44,16 @@ def updateandaddgroups():
     else:
         df = pd.DataFrame(columns=["srno", "groupid", "last_message_id", "isupscmainstopicallowed"])
 
-    # Ensure all registered groups are present
     for gid in registered_groups:
         if str(gid) not in existing_groups:
             new_row = {
                 "srno": len(df) + 1,
                 "groupid": str(gid),
                 "last_message_id": None,
-                "isupscmainstopicallowed": 1   # or 0 if you want default
+                "isupscmainstopicallowed": 1  
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
-    # Reset srno to be sequential
     df.reset_index(drop=True, inplace=True)
     df["srno"] = df.index + 1
 
@@ -131,155 +89,8 @@ def save_group_data():
     with open(group_data_file, "w") as f:
         json.dump(group_data, f)
 
-newuploadedexcelfile = "Data/SYNO5.xlsx"
-quiz_state = {}
-correct_users = {}  
-quiz_scores = {} 
-selected_poll_count = 10
-selected_quizscore_count=0
-active_poll=1
-answers_received = defaultdict(int) 
-is_quiz_active = False  
-chat_id = None  
-selected_time_limit = 10  
-unanswered_poll = 0
-cancel_active = False
-display_chat=0
-Quiz_grammar_type =''
-quiz_kick= False
-quiz_tasks = {}
-StudyStuffgrp=False
-commandfunctionpass = 1
-isSamplePaper = False
-isNewQuizStarted =1
-used_srnos = set()
-difficulty_message = "subject"
-sampleCode = "PYA1"
-
-def get_chat_state(chat_id):
-    if chat_id not in quiz_state:
-        quiz_state[chat_id] = {
-            "is_active": False,
-            "selected_polls": [],
-            "correct_users": {},
-        }
-    return quiz_state[chat_id]
-
-def reset_used_srnos():
-    global used_srnos
-    used_srnos.clear()
-
 def escape_markdown(text: str) -> str:
     return re.sub(r'([_\*\[\]\(\)~`>#+\-=|{}.!])', r'\\\1', text)
-
-def load_scores():
-    if not os.path.exists(SCORE_FILE):
-        return []
-    workbook = openpyxl.load_workbook(SCORE_FILE)
-    sheet = workbook.active
-    scores = []
-    for row in range(2, sheet.max_row + 1):  
-
-        user_id = sheet.cell(row=row, column=2).value
-        username = sheet.cell(row=row, column=3).value
-        score = sheet.cell(row=row, column=4).value
-        round = sheet.cell(row=row, column=5).value
-        if user_id and username and score and round is not None:
-            scores.append((user_id, username, score,round))
-    workbook.close()
-    return scores
-
-async def load_quiz_data(file_path, selected_poll_count):
-    global used_srnos
-    try:
-        df = pd.read_excel(file_path)
-        for col in df.select_dtypes(include="object").columns:
-            df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
-
-        unique_rows = df[~df['srno'].isin(used_srnos)]
-        if len(unique_rows) < selected_poll_count:
-            selected_poll_count = len(unique_rows)
-
-        selected_rows = unique_rows.sample(n=selected_poll_count)
-        used_srnos.update(selected_rows['srno'].tolist())
-
-        polls = []
-        for _, row in selected_rows.iterrows():
-            truncated_flag = False 
-
-            options = []
-            for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
-                if isinstance(opt, str) and len(opt) > 100:
-                    options.append(opt[:100])
-                    truncated_flag = True
-                else:
-                    options.append(opt)
-
-            answer = row["answer"]
-            if isinstance(answer, str) and len(answer) > 100:
-                answer = answer[:100]
-                truncated_flag = True
-
-            meaning = row.get("meaning", "nan")
-            if truncated_flag:
-                meaning = f"{meaning}\n⚠ Option/Answer text reduced due to length limit"
-
-            random.shuffle(options)
-
-            poll = {
-                "question": row["question"][:1000], 
-                "options": options,
-                "correct_answer": answer,
-                "meaning": meaning,
-                "comprehension":"nan"
-            }
-            polls.append(poll)
-        return polls
-
-    except Exception as e:
-        print(e)
-
-async def load_exam_quiz_data(file_path, sampleCode,samplePaperType):
-    global used_srnos
-    try:
-        df = pd.read_excel(file_path)
-        text_cols = df.select_dtypes(include="object").columns
-        df[text_cols] = df[text_cols].map(lambda x: x.strip() if isinstance(x, str) else x)
-        filtered_rows = df[(df["samplepaper"] == sampleCode) & (df["topic"] == samplePaperType)]
-        polls = []
-        for _, row in filtered_rows.iterrows():
-            truncated_flag = False  
-
-            options = []
-            for opt in [row["option1"], row["option2"], row["option3"], row["option4"]]:
-                if isinstance(opt, str) and len(opt) > 100:
-                    options.append(opt[:100])
-                    truncated_flag = True
-                else:
-                    options.append(opt)
-
-            # Process answer
-            answer = row["answer"]
-            if isinstance(answer, str) and len(answer) > 100:
-                answer = answer[:100]
-                truncated_flag = True
-
-            comprehension = row.get("comprehension", "nan")
-           
-            random.shuffle(options)
-
-            poll = {
-                "question": row["question"][:1000], 
-                "options": options,
-                "correct_answer": answer,
-                "meaning": "nan",
-                "comprehension": comprehension
-            }
-            polls.append(poll)
-        return polls
-
-    except Exception as e:
-        print(e)
 
 async def forceregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -305,1061 +116,31 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
             if member.status in ["member", "administrator", "creator"]:
-                await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startquiz to start the quizzes.")
+                await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startTranslation to start the Translation.")
             else:
                 await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
-                await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
+                await context.bot.send_message(chat_id, text="Then use /startTranslation Command To start the Translation")
         except Exception as e:
             print(f"Error checking membership: {e}")
             await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
-            await context.bot.send_message(chat_id, text="Then use /startquiz Command To start the Quizzes")
+            await context.bot.send_message(chat_id, text="Then use /startTranslation Command To start the Translation")
     else:
         # In group chats
-        await context.bot.send_message(chat_id, text="use /startquiz Command To start the Quizzes")
+        await context.bot.send_message(chat_id, text="use /startTranslation Command To start the Translation")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     text = (
         "📌 Available Commands\n\n"
-        "/startquiz – Start quiz\n"
-        "/myrank – Show your rank\n"
-        "/topgrpscorer – Top group scorers\n"
-        "/alltimetopper – All time toppers\n"
-        "/rankers – Monthly toppers\n"
-        "/cancelquiz – Cancel current quiz\n"
-        "/stoptopic – Stop UPSC topic\n"
-        "/allowtopic – Allow UPSC topic\n"
-        "/forceregister – Register Forcely To Include yourself in Word of The day Group List\n\n"
+        "/start – Start The Bot\n"
+        "/startTranslation – To Start Translation Bot\n"
+        "/next – Show Next Sentence\n"
+        "/forceregister – Register Forcely To Include yourself in Translation of The day Group List\n\n"
         "📝 Notes\n"
-        "• Word of the day will be sent at 8:00 AM\n"
-        "• UPSC topic will be sent at 10:30 AM\n\n"
+        "• Translation of the day will be sent at 10:00 AM\n"
         "📨 For any help message: @O000000000O00000000O"
     )
     await context.bot.send_message(chat_id, text=text, parse_mode="Markdown")
-
-async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global is_quiz_active,quiz_state, correct_users,commandfunctionpass, chat_id, unanswered_poll,cancel_active,selected_quizscore_count,quiz_kick
-        cancel_active = False
-        quiz_kick= False
-        commandfunctionpass = 1
-        reset_used_srnos()
-        chat_id = update.message.chat.id
-
-        if chat_id in quiz_state:
-            await update.message.chat.send_message('A quiz is already running in this group. Wait or Cancel it by /cancelquiz')
-            return
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {
-                "is_active": True,
-                "active":True,
-                "polls": [],
-                "scores": {},  
-                "quiz_kick": False,  
-                "cancel_active": False,  
-                "consecutive_unanswered": 0,
-                "selected_poll_count": 0,  
-            }
-
-        selected_quizscore_count=0
-        correct_users.clear() 
-        reply_markup =  InlineKeyboardMarkup(StartingSubject0())
-        try:
-            await update.message.chat.send_message('Select the Quiz type:', reply_markup=reply_markup)
-        except (BadRequest, Forbidden, TimedOut) as e:
-                print(f"Error canceling the quiz: {e}")
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-
-async def handle_allsizzlescore(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-
-    if chat_id == groupsendid and update.message.reply_to_message and update.message.reply_to_message.document:
-        try:
-            file = await context.bot.get_file(update.message.reply_to_message.document.file_id)
-            downloaded_path = await file.download_to_drive()
-
-            # Replace existing userscore.xlsx
-            if os.path.exists(SCORE_FILE):
-                os.remove(SCORE_FILE)
-
-            os.rename(downloaded_path, SCORE_FILE)
-
-            await update.message.reply_text("✅ Score file updated successfully.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ Failed to update score file:\n`{e}`", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("⚠️ Please reply to an .xlsx file in the allowed group.")
-
-async def handle_updatesizzlescore(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-
-    if chat_id == groupsendid and update.message.reply_to_message and update.message.reply_to_message.document:
-        try:
-            file = await context.bot.get_file(update.message.reply_to_message.document.file_id)
-            downloaded_path = await file.download_to_drive()
-
-            # Replace existing userscore.xlsx
-            if os.path.exists(MNTH_SCORE_FILE):
-                os.remove(MNTH_SCORE_FILE)
-
-            os.rename(downloaded_path, MNTH_SCORE_FILE)
-
-            await update.message.reply_text("✅ Score file updated successfully.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ Failed to update score file:\n`{e}`", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("⚠️ Please reply to an .xlsx file in the allowed group.")
-
-async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global EXCEL_FILE, Quiz_grammar_type,samplePaperName,StudyStuffgrp,difficulty_message,sampleCode
-        query = update.callback_query
-        username = query.from_user.username or query.from_user.first_name
-        await query.answer()
-        difficulty_message = ''
-        chat_id = query.message.chat.id
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {
-                "is_active": True,
-                "active":True,
-                "polls": [],
-                "scores": {},  
-                "quiz_kick": False,  
-                "cancel_active": False,  
-                "consecutive_unanswered": 0,
-                "selected_poll_count": 0,  
-            }
-        data = query.data
-        if data not in DIFFICULTY_MAP:
-            await query.edit_message_text("⚠️ Invalid selection.")
-            return
-
-       
-        item = DIFFICULTY_MAP[data]
-        EXCEL_FILE = item[0]
-        difficulty_message = item[1]
-        sampleCode = item[2] if len(item) == 4 else 'PYA1'
-        samplePaperName = item[3] if len(item) == 4 else 'CGL'
-        Quiz_grammar_type = difficulty_message
-
-        
-        if(Quiz_grammar_type !='Reasoning' and Quiz_grammar_type !='Maths'):
-            time_keyboard = [
-            
-            [InlineKeyboardButton("15 Seconds", callback_data='time_15')],
-            [InlineKeyboardButton("20 Seconds", callback_data='time_20')],
-            [InlineKeyboardButton("25 Seconds", callback_data='time_25')],
-            [InlineKeyboardButton("30 Seconds", callback_data='time_30')],
-            
-            ]
-        else:
-            time_keyboard = [
-            [InlineKeyboardButton("30 Seconds", callback_data='time_30')],
-            [InlineKeyboardButton("45 Seconds", callback_data='time_45')],
-            [InlineKeyboardButton("60 Seconds", callback_data='time_60')],
-            [InlineKeyboardButton("90 Seconds", callback_data='time_90')],
-            ]
-        if(isSamplePaper):
-            print("samplepaper")
-            time_keyboard = [
-            [InlineKeyboardButton("20 Seconds", callback_data='sampletime_20')],
-            [InlineKeyboardButton("25 Seconds", callback_data='sampletime_25')],
-            [InlineKeyboardButton("30 Seconds", callback_data='sampletime_30')],
-            [InlineKeyboardButton("45 Seconds", callback_data='sampletime_45')],
-            [InlineKeyboardButton("60 Seconds", callback_data='sampletime_60')],
-            ]
-        reply_markup = InlineKeyboardMarkup(time_keyboard)
-        if not quiz_state[chat_id]["is_active"]:
-            try:
-                await query.edit_message_text(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-        else:
-            try:
-                await query.edit_message_text(f'@{username} Chooses the {difficulty_message}  \n\n Select the time limit for each poll:', reply_markup=reply_markup)
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Chooses the {difficulty_message}  \n\n Select the time limit for each poll:', reply_markup=reply_markup)
-    
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-
-async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global isSamplePaper
-    try:
-        query = update.callback_query
-        username = query.from_user.username or query.from_user.first_name
-
-        await query.answer()
-        await query.answer()
-        difficulty_message = ''
-
-        if query.data == 'type_NDA0':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(Nda_keyboard0())
-            try:
-                await query.edit_message_text(f'@{username} selected NDA-CDS Phase 1 \n Select the Grammar Quiz type:', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected NDA-CDS Phase 1 \n Select the Grammar Quiz type:', reply_markup=reply_markup)
-        
-
-        elif query.data == 'type_NDA1':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(Nda_keyboard1())
-            try:
-                await query.edit_message_text(f'@{username} selected NDA-CDS Phase 2 \n\n Select the Grammar Quiz type:', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected NDA-CDS Phase 2 \n\n Select the Grammar Quiz type:', reply_markup=reply_markup)
-        
-
-        elif query.data == 'type_NDA2':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(Nda_keyboard2())
-            try:
-                await query.edit_message_text(f'@{username} selected NDA-CDS Phase 2 \n\n Select the Grammar Quiz type:', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected NDA-CDS Phase 2\n Select the Grammar Quiz type:', reply_markup=reply_markup)
-        elif query.data == 'type_tech':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(tech_keyboard())
-            try:
-                await query.edit_message_text(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Technical Phase  \n\n Select the further quiz type:', reply_markup=reply_markup)
-        elif query.data == 'type_nigeria':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(nigeria_keyboard1())
-            try:
-                await query.edit_message_text(f'@{username} selected Nigeria Country \n\n Select the Further Quiz :', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Nigeria Country \n\n Select the Further Quiz:', reply_markup=reply_markup)
-        
-        elif query.data == 'type_samplePaper':
-            reply_markup = InlineKeyboardMarkup(SamplePaper_keyboard1())
-            isSamplePaper = True
-            try:
-                await query.edit_message_text(f'@{username} selected Sample Papers \n\n Select the Further Quiz :', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Sample Papers \n\n Select the Further Quiz:', reply_markup=reply_markup)
-       
-        elif query.data == 'type_startsubj0':
-            isSamplePaper = False
-            try:
-                 await query.edit_message_text( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject0()))
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject0()))
-        
-
-        elif query.data == 'type_startsubj1':
-            isSamplePaper = False
-            try:
-                 await query.edit_message_text( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject1()))
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message( "📘 Select the Quiz Subject:", reply_markup=InlineKeyboardMarkup(StartingSubject0()))
-        elif query.data == 'type_topic0':
-            reply_markup = InlineKeyboardMarkup(Topic_Kb0())
-            try:
-                await query.edit_message_text(f'@{username} selected Topic Phase 1 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Topic Phase 1 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-        
-
-        elif query.data == 'type_topic1':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(Topic_Kb1())
-            try:
-                await query.edit_message_text(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-        elif query.data == 'type_newtopic':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(New_addedTopics())
-            try:
-                await query.edit_message_text(f'@{username} selected New added Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected New Added Topic Phase 2 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-        
-
-
-        elif query.data == 'type_topic2':
-            isSamplePaper = False
-            reply_markup = InlineKeyboardMarkup(Topic_Kb2())
-            try:
-                await query.edit_message_text(f'@{username} selected Topic Phase 3 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected Topic Phase 3 \n\n Select the Quiz Topic :', reply_markup=reply_markup)
-        elif query.data == 'type_BASIC1':
-            isSamplePaper = False
-            
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Fill in the Blanks 2.0", callback_data='difficulty_fillblank_nda')],
-                [InlineKeyboardButton("Spelling Correction 2.0", callback_data='difficulty_spellcorr')],
-                [InlineKeyboardButton("Daily Life Idioms", callback_data='difficulty_shortIdiom')],
-                [InlineKeyboardButton("Sentence Correction", callback_data='difficulty_sentcorr')],
-                [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_BASIC')]
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)   
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)
-       
-        
-        elif query.data == 'type_BASIC':
-            isSamplePaper = False
-            
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Advance Word Meaing", callback_data='difficulty_wordMeaning')],
-        [InlineKeyboardButton("One word Substitute 2.0", callback_data='difficulty_ssc_ows')],
-                [InlineKeyboardButton("Synonyms 2.0", callback_data='difficulty_synonyms')],
-                [InlineKeyboardButton("Preposition", callback_data='difficulty_prepo')],
-                [InlineKeyboardButton("Antonyms", callback_data='difficulty_antonyms')],
-                [InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_BASIC1')]
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)   
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected Basic Grammar \n Select the Grammar Quiz type:', reply_markup=reply_markup)
-        elif query.data == 'type_Upsc2':
-            isSamplePaper = False
-            reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard2())
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-       
-        elif query.data == 'type_Upsc1':
-            isSamplePaper = False
-            reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard1())
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-        elif query.data == 'type_reasoning':
-            isSamplePaper = False
-            reply_markup = reply_markup=InlineKeyboardMarkup(Reasoning_Kb0())
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected Reasoning \n Select the  Quiz type', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-        
-        elif query.data == 'type_Upsc0':
-            isSamplePaper = False
-            reply_markup = reply_markup=InlineKeyboardMarkup(Upsc_keyboard0())
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-        elif query.data == 'type_Cgl':
-            isSamplePaper = False
-            difficulty_keyboard = [
-                [InlineKeyboardButton("PYQ Synonyms", callback_data='difficulty_synonyms')],
-                [InlineKeyboardButton("Reasoning", callback_data='difficulty_cglReasoning')],
-                [InlineKeyboardButton("English", callback_data='difficulty_cglEnglish')],
-                [InlineKeyboardButton("General Awareness", callback_data='difficulty_cglGk')],
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected SSC - CGL/CHSL \n Select the Grammar Quiz type', reply_markup=reply_markup)
-                
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected UPSC \n Select the Grammar Quiz type', reply_markup=reply_markup)
-       
-        elif query.data == 'type_Neet':
-            isSamplePaper = False
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Chemistry", callback_data='difficulty_neetchemistry')]
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected Jee and Neet \n Select the Quiz type:', reply_markup=reply_markup)   
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected  Jee and  Neet \n Select the Quiz type:', reply_markup=reply_markup)
-        elif query.data == 'type_History':
-            isSamplePaper = False
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Ancient History", callback_data='difficulty_historyAncient')],
-                [InlineKeyboardButton("Medieval History", callback_data='difficulty_historyMedieval')],
-                [InlineKeyboardButton("Modern History", callback_data='difficulty_historyModern')]
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
-            
-            try:
-                await query.edit_message_text(f'@{username} Selected History \n Select the History Period type:', reply_markup=reply_markup)   
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} Selected History \n Select the History Period type:', reply_markup=reply_markup)
-        
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-
-async def handle_SamplePaper_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global isSamplePaper
-    try:
-        query = update.callback_query
-        username = query.from_user.username or query.from_user.first_name
-
-        await query.answer()
-        
-        isSamplePaper = True
-        if query.data == 'sample_MTS':
-            reply_markup = InlineKeyboardMarkup(Sample_mtsKeyboard0())
-            try:
-                await query.edit_message_text(f'@{username} selected MTS Previous year Paper \n Select the Futher Quiz type:', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected MTS Previous year Paper \n Select the Further Quiz type:', reply_markup=reply_markup)
-
-        elif query.data == 'sample_CDS':
-            reply_markup = InlineKeyboardMarkup(Sample_cdsKeyboard0())
-            try:
-                await query.edit_message_text(f'@{username} selected CDS Previous year Paper \n\n Select the Further Quiz type:', reply_markup=reply_markup)
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected CDS Previous year Paper\n\n Select the Further Quiz type:', reply_markup=reply_markup)
-        
-        
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-                    
-async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global selected_time_limit
-        query = update.callback_query
-        username = query.from_user.username or query.from_user.first_name
-        chat_id = query.message.chat.id
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {
-                "is_active": True,
-                "active":True,
-                "polls": [],
-                "scores": {},  
-                "quiz_kick": False,  
-                "cancel_active": False,  
-                "consecutive_unanswered": 0,
-                "selected_poll_count": 0,  
-            }
-        await query.answer()
-        time_mapping = {
-            
-            'time_15': 15,
-            'time_20': 20,
-            'time_25': 25,
-            'time_30': 30,
-            'time_45': 45,
-            'time_60': 60,
-            'time_90': 90,
-        }
-        selected_time_limit = time_mapping.get(query.data, 10)
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        else:
-            quiz_state[chat_id]["selectedtime"] = selected_time_limit
-        keyboard = [
-            [InlineKeyboardButton("15 Round", callback_data='15')],
-            [InlineKeyboardButton("25 Round", callback_data='25')],
-            [InlineKeyboardButton("35 Round", callback_data='35')],
-            [InlineKeyboardButton("50 Round", callback_data='50')],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        print("time selection")
-        if not quiz_state[chat_id]["is_active"]:
-            try:
-                await query.edit_message_text(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-        else:
-            try:
-                await query.edit_message_text(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n How many rounds?', reply_markup=reply_markup)
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n How many rounds?', reply_markup=reply_markup)
-       
-
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-
-async def handle_samplePaperType_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global selected_time_limit
-        query = update.callback_query
-        username = query.from_user.username or query.from_user.first_name
-        chat_id = query.message.chat.id
-      
-        await query.answer()
-        time_mapping = {
-            'sampletime_20': 20,
-            'sampletime_25': 25,
-            'sampletime_30': 30,
-            'sampletime_45': 45,
-            'sampletime_60': 60,
-        }
-        selected_time_limit = time_mapping.get(query.data, 10)
-
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {"active": False}
-        quiz_state[chat_id]["selectedtime"] =selected_time_limit
-        
-        if(samplePaperName=="MTS"):
-            keyboard = [
-            [InlineKeyboardButton("Maths", callback_data='sampletype_Maths')],
-             [InlineKeyboardButton("Reasoning", callback_data='sampletype_Reasoning')],
-            [InlineKeyboardButton("General Awareness", callback_data='sampletype_GA')],
-            [InlineKeyboardButton("General English", callback_data='sampletype_English')],
-            ]
-        elif(samplePaperName =="CDS"):
-             keyboard = [
-            [InlineKeyboardButton("English", callback_data='sampletype_English')],
-            ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        if not quiz_state[chat_id]["is_active"]:
-            try:
-                await query.edit_message_text(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'Quiz is Already Running in this Chat. Wait or Cancel it /cancelquiz')
-        else:
-            try:
-                await query.edit_message_text(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n Select The Sample Paper Section?', reply_markup=reply_markup)
-            
-            except (BadRequest, Forbidden, TimedOut) as e:
-                await query.message.chat.send_message(f'@{username} selected {selected_time_limit} second To complete one quiz. \n\n How many rounds?', reply_markup=reply_markup)
-       
-
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)
-
-async def handle_SamplePaper_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global quiz_state,quiz_tasks,sampleCode,selected_time_limit
-        query = update.callback_query
-        chat_id = query.message.chat_id  
-        username = query.from_user.username or query.from_user.first_name
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {
-                "is_active": True,
-                "active":True,
-                "polls": [],
-                "scores": {},  
-                "quiz_kick": False,  
-                "cancel_active": False,  
-                "consecutive_unanswered": 0,
-                "selected_poll_count": 0,  
-            }
-        await query.answer()
-
-        sampleType_mapping = {
-            'sampletype_Maths': 'Maths',
-            'sampletype_Reasoning': 'Reasoning',
-            'sampletype_GA': 'GA',
-            'sampletype_English': 'English',
-        }
-        samplePaperType = sampleType_mapping.get(query.data, 'English')
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {"active": False}
-        
-        if not quiz_state[chat_id]["active"]:
-            await query.answer("Please start a new quiz with /startquiz")
-            return
-          
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        quiz_state[chat_id]["active"] = True
-        quiz_state[chat_id]["polls"] = []
-         
-
-        message = (
-    f"🚀 @{username} has started the {difficulty_message} quiz!\n\n"
-    f"🕒 Time per question: {selected_time_limit} seconds\n"
-    f"Get ready — the quiz begins now! 🎯"
-)
-        
-        await query.edit_message_text(text=message)
-        if(isSamplePaper):
-            selected_polls = await load_exam_quiz_data(EXCEL_FILE, sampleCode,samplePaperType)
-            quiz_state[chat_id]["total_rounds"] = len(selected_polls)
-        
-        
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        task = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
-        quiz_tasks[chat_id] = task
-
-    except Exception as e:
-        print(f"Error in handle_SamplePaper_button_click: {e}")
-
-async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global quiz_state,quiz_tasks,sampleCode
-        query = update.callback_query
-        chat_id = query.message.chat_id  # Identify which chat is running the quiz
-        username = query.from_user.username or query.from_user.first_name
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {"active": False}
-
-        if not quiz_state[chat_id]["active"]:
-            await query.answer("Please start a new quiz with /startquiz")
-            return
-
-        selected_poll_count = int(query.data)   #quizcount
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        quiz_state[chat_id]["active"] = True
-        quiz_state[chat_id]["polls"] = []
-        
-        message = (
-    f"🚀 @{username} has started the {difficulty_message} quiz!\n\n"
-    f"🕒 Time per question: {selected_time_limit} seconds\n"
-    f"🔢 Total rounds: {selected_poll_count}\n\n"
-    f"Get ready — the quiz begins now! 🎯"
-)
-        
-        
-        selected_polls = await load_quiz_data(EXCEL_FILE, selected_poll_count)
-        quiz_state[chat_id]["total_rounds"] = selected_poll_count
-        await query.edit_message_text(text=message)
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        task = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
-        quiz_tasks[chat_id] = task
-
-    except Exception as e:
-        print(f"Error in handle_button_click: {e}")
-
-async def handle_New_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global newuploadedexcelfile,isNewQuizStarted,quiz_tasks,quiz_state,new_timer
-        query = update.callback_query
-        chat_id = query.message.chat.id
-        if chat_id in quiz_state and quiz_state[chat_id]["active"]:
-            quiz_state[chat_id]["active"] = False
-            quiz_state.pop(chat_id, None)
-            
-        username = query.from_user.username or query.from_user.first_name
-        selected_poll_count = 15
-        selected_time_limit = int(new_timer)  # ✅ Make sure THIS line is present
-      
-        EXCEL_FILE = newuploadedexcelfile
-        difficulty_message = "NEW"
-
-        quiz_state[chat_id] = {
-
-            "total_rounds": selected_poll_count,
-            "selectedtime": selected_time_limit,
-            "active": True,
-            "polls": [],
-            "is_active": True,
-            "isSendInAllGroups":True,
-        }
-        
-        message = (
-            f"🚀 @{username} has started the {difficulty_message} quiz!\n\n"
-            f"🕒 Time per question: {selected_time_limit} seconds\n"
-            f"🔢 Total rounds: {selected_poll_count}\n\n"
-            f"Get ready — the quiz begins now! 🎯"
-        )
-
-        await query.edit_message_text(text=message)
-        selected_polls = await load_quiz_data(EXCEL_FILE, selected_poll_count)
-        if not quiz_state[chat_id]["is_active"]:
-            return
-        if chat_id in quiz_tasks:
-            task = quiz_tasks[chat_id]
-            if not task.done():
-                task.cancel()
-        print(f"Cancelled previous quiz task for chat_id {chat_id}")
-        task  = asyncio.create_task(send_quiz_polls(chat_id, selected_polls, context))
-        quiz_tasks[chat_id] = task
-
-    except Exception as e:
-        print(f"Error in handle_New_button_click: {e}")
-
-async def send_quiz_polls(chat_id, polls, context):
-    try:
-        if not quiz_state[chat_id]["is_active"]:
-            await context.bot.send_message(chat_id, text="Quiz is already running in this group. Please wait or cancel with /cancelquiz")
-            return
-        quiz_state[chat_id].setdefault("polls", [])
-        selectedtime = quiz_state[chat_id]["selectedtime"]
-        quiz_scores[chat_id] = {}
-        for i, poll in enumerate(polls):
-            quiz_state[chat_id]["is_active"] = False
-            if not quiz_state[chat_id]["active"]:
-                print(f"Quiz canceled in {chat_id}, stopping polls.")
-                break
-
-            try:
-                # Ensure all fields are stringified
-                question = stringify(poll.get('question'))
-                options = [stringify(opt) for opt in poll.get('options', [])]
-                correct_answer = stringify(poll.get('correct_answer'))
-                meaning = stringify(poll.get('meaning'))
-                comprehension = stringify(poll.get('comprehension'))
-
-                display_question = question
-                if len(question) > 253:
-                    await context.bot.send_message(chat_id, text=question)
-                    display_question = "Choose Correct Answer"
-                
-                if comprehension and str(comprehension).strip().lower() != "nan":
-                    await context.bot.send_message(chat_id, text=f"Comprehension: {comprehension}")
-                
-                poll_message = await context.bot.send_poll(
-                    chat_id=chat_id,
-                    question=f"{i+1}/{len(polls)}: {display_question}",
-                    options=options,
-                    is_anonymous=False,
-                    allows_multiple_answers=False,
-                    open_period=selectedtime,
-                    type=Poll.QUIZ,
-                    correct_option_id=options.index(correct_answer)
-                )
-
-                quiz_state[chat_id]["polls"].append({
-                    "poll_id": poll_message.poll.id,
-                    "question": question,
-                    "correct_answer": correct_answer,
-                    "options": options,
-                    "meaning": meaning,
-                    "responses": {},
-                    "poll_message": poll_message
-                })
-                
-                await countdown_and_close_poll(chat_id, poll_message, context)
-                await asyncio.sleep(2)
-                if(i==7 and Promotion):
-                    await context.bot.send_message(chat_id, text="\nPlease Join this Channel To Support Us: @currentaffairs_04")
-                
-
-            except BadRequest as e:
-                await context.bot.send_message(chat_id, text="❗ I don't have permission to create polls in this group.\nPlease make me admin or allow 'Create Polls' permission.")
-                break
-            except Exception as e:
-                
-                print(f"Error in send_quiz_polls poll: {e}")
-
-        if quiz_state.get(chat_id, {}).get("active", False):
-            await calculate_scores(chat_id, context)
-        if chat_id in quiz_state:
-            quiz_state.pop(chat_id, None)
-
-      
-
-    except Exception as e:
-        print("Exception in sending poll:", e)
-
-async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        answer = update.poll_answer
-        user_id = str(answer.user.id)
-        if answer.user.username:
-            username = f"@{answer.user.username}"
-        elif answer.user.first_name:
-            username = answer.user.first_name
-        else:
-            username = str(user_id)
-        selected_options = answer.option_ids
-        for chat_id, chat_quiz in quiz_state.items():
-            if "polls" not in chat_quiz:
-                continue
-            for poll in chat_quiz["polls"]:
-                if poll["poll_id"] == answer.poll_id:
-                    poll["responses"][user_id] = True
-                    correct_answer = poll["correct_answer"]
-                    options = poll["options"]
-                    selected_answer = options[selected_options[0]]
-                    if selected_answer == correct_answer:
-                        if chat_id not in quiz_scores:
-                            quiz_scores[chat_id] = {}
-                        if user_id not in quiz_scores[chat_id]:
-                            quiz_scores[chat_id][user_id] = {"username": username, "score": 0}
-                        quiz_scores[chat_id][user_id]["score"] += 1
-                    return
-    except Exception as e:
-        print(f"Error in handle_poll_answer: {e}")
-
-async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        user_id = str(update.message.from_user.id)
-        username = update.message.from_user.username or update.message.from_user.first_name or user_id
-        username = escape_markdown(username)
-        try:
-            workbook = load_workbook(SCORE_FILE)
-            sheet = workbook.active
-        except FileNotFoundError:
-            await update.message.reply_text("No scores found.")
-            return
-        user_scores = {}
-        user_groups = {}
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row and len(row) >= 6:
-                _, chat_id, stored_user_id, stored_username, score, rounds = row
-                stored_user_id = str(stored_user_id)
-                if stored_user_id not in user_scores:
-                    user_scores[stored_user_id] = {"score": 0, "rounds": 0}
-                    user_groups[stored_user_id] = set()
-                user_scores[stored_user_id]["score"] += int(score)
-                user_scores[stored_user_id]["rounds"] += int(rounds)
-                user_groups[stored_user_id].add(chat_id)
-        sorted_users = sorted(user_scores.items(), key=lambda x: x[1]["score"], reverse=True)
-        rank = None
-        uid_target = int(float(user_id))
-        matched_key = None
-        for idx, (uid, data) in enumerate(sorted_users, start=1):
-            if int(float(uid)) == uid_target:
-                rank = idx
-                matched_key = uid
-                break
-        if rank:
-            total_score = user_scores[matched_key]["score"]
-            total_rounds = user_scores[matched_key]["rounds"]
-            total_groups = len(user_groups[matched_key])
-            totalperson = len(sorted_users) + 500
-            response = (
-                f"🏅 *Your Rank*\n\n"
-                f"🏆🏆 {rank} out of {totalperson}\n"
-                f"👤 *Username:* {username}\n"
-                f"🎯 *Total Score:* {total_score}\n"
-                f"🔄 *Rounds Played:* {total_rounds}\n"
-                f"🧑‍🤝‍🧑 *Total Groups:* {total_groups}"
-            )
-        else:
-            response = "You haven't participated in any quizzes yet."
-        await update.message.reply_text(response, parse_mode="Markdown")
-    except Exception as e:
-        print(f"Error in my_rank: {e}")
-
-async def topgrp_scorer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Returns the top 10 users from the current group along with the total number of participants."""
-    try:
-        chat_id = str(update.message.chat_id)
-
-        # Load Excel file
-        try:
-            workbook = load_workbook(SCORE_FILE)
-            sheet = workbook.active
-        except FileNotFoundError:
-            await update.message.reply_text("No scores found for this group.")
-            return
-
-        group_scores = {}
-        total_users = set()
-
-        # Collect scores for this specific group
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row and len(row) >= 6:
-                _, stored_chat_id, user_id, username, score, _ = row
-                if str(stored_chat_id) == chat_id:
-                    total_users.add(user_id)  # Count unique users in this group
-                    if user_id in group_scores:
-                        group_scores[user_id]["score"] += int(score)
-                    else:
-                        group_scores[user_id] = {"username": escape_markdown(username), "score": int(score)}
-
-        if not group_scores:
-            await update.message.reply_text("No scores available for this group.")
-            return
-
-        sorted_group_scores = sorted(group_scores.items(), key=lambda x: x[1]["score"], reverse=True)
-        leaderboard = f"🏆 *Top 10 Scorers in This Group* 🏆\n👥 *Total Members in Leaderboard:* `{len(total_users)}`\n\n"
-        
-        for rank, (user_id, data) in enumerate(sorted_group_scores[:10], start=1):
-            leaderboard += f"{rank}\\) *{data['username']}* \\- `{data['score']} points`\n"
-
-        await update.message.reply_text(leaderboard, parse_mode="MarkdownV2")
-
-    except Exception as e:
-        print(f"Error in top1grp_scorer: {e}")
-
-def update_user_score(chat_id, correct_users, file):
-    """
-    Optimized: Update user scores in Excel using Pandas (much faster).
-    """
-    try:
-        game_round = 1
-
-        # Load existing file or create new DataFrame
-        if os.path.exists(file):
-            df = pd.read_excel(file)
-        else:
-            df = pd.DataFrame(columns=["srno", "chatid", "Idnumber", "Username", "Score", "round"])
-
-        # Ensure types
-        df["chatid"] = df["chatid"].astype(str)
-        df["Idnumber"] = df["Idnumber"].astype(str)
-
-        # Update scores
-        for user_id, data in correct_users.items():
-            username = data["username"]
-            new_score = data["score"]
-
-            mask = (df["chatid"] == str(chat_id)) & (df["Idnumber"] == str(user_id))
-
-            if mask.any():
-                df.loc[mask, "Username"] = username
-                df.loc[mask, "Score"] = df.loc[mask, "Score"].astype(int) + new_score
-                df.loc[mask, "round"] = df.loc[mask, "round"].astype(int) + game_round
-            else:
-                sr_no = len(df) + 1
-                df.loc[len(df)] = [sr_no, str(chat_id), str(user_id), username, new_score, game_round]
-
-        # Save back once
-        df.to_excel(file, index=False)
-
-    except Exception as e:
-        print(f"Error updating scores: {e}")
-
-async def calculate_scores(chat_id, context):
-    global groupsendid,isSamplePaper
-    try:
-        isSamplePaper = False
-        if chat_id not in quiz_state or "polls" not in quiz_state[chat_id]:
-            await context.bot.send_message(chat_id, "No quiz data found.")
-            return
-        total_polls = len(quiz_state[chat_id]["polls"])
-        if total_polls == 0:
-            await context.bot.send_message(chat_id, "No polls were conducted.if its Mistake please Complain there @currentaffairs_04")
-            return
-        msg = quiz_state[chat_id].get("calc_msg")
-        if msg:
-            try:
-                await msg.edit_text(f"Calculating scores for {total_polls} rounds...")
-            except:
-                msg = await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
-                quiz_state[chat_id]["calc_msg"] = msg
-        else:
-            msg = await context.bot.send_message(chat_id, f"Calculating scores for {total_polls} rounds...")
-            quiz_state[chat_id]["calc_msg"] = msg
-        if chat_id not in quiz_scores or not quiz_scores[chat_id]:
-            quiz_state.pop(chat_id, None)
-            quiz_scores.pop(chat_id, None)
-            await context.bot.send_message(chat_id, "No one Selected the Correct Option in the quiz.")
-            return
-        isSendInAllGroups = quiz_state.get(chat_id, {}).get("isSendInAllGroups", False)
-        if not isSendInAllGroups:
-            await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id], SCORE_FILE)
-        
-        df = await asyncio.to_thread(lambda: pd.DataFrame.from_dict(quiz_scores[chat_id], orient="index").sort_values(by="score", ascending=False))
-        leaderboard = "🏆 *Quiz Results* 🏆\n\n"
-
-        for rank, row in enumerate(df.itertuples(), start=1):
-            leaderboard += (
-        f"{rank}\\) "
-        f"*{escape_markdown(str(row.username))}* "
-        f"\\- `{escape_markdown(str(row.score))} points`\n"
-    )
-
-        leaderboard += "\nJoin: @currentaffairs\\_04\nStart Quiz again with /startquiz"
-
-        try:
-            await msg.edit_text(leaderboard, parse_mode="MarkdownV2")
-        except:
-            await context.bot.send_message(chat_id, leaderboard, parse_mode="MarkdownV2")
-        if not isSendInAllGroups:
-            await asyncio.to_thread( update_user_score,chat_id,quiz_scores[chat_id],MNTH_SCORE_FILE)
-            for file in [SCORE_FILE, MNTH_SCORE_FILE]:
-                with open(file, "rb") as f:
-                    await context.bot.send_document(chat_id=groupsendid, document=f)
-        quiz_state.pop(chat_id, None)
-        quiz_scores.pop(chat_id, None)
-    except Exception as e:
-        quiz_state.pop(chat_id, None)
-        quiz_scores.pop(chat_id, None)
-        await context.bot.send_message(groupsendid, f"Error occured: {e}")
-
-def escape_markdown(text):
-    """Escape special characters for Telegram MarkdownV2."""
-    escape_chars = r"_*[]()~`>#+-=|{}.!\\"
-    return re.sub(r"([{}])".format(re.escape(escape_chars)), r"\\\1", text)
-
-async def month_topper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Returns the top 10 scorers across all groups, including total participants."""
-    try:
-        try:
-            workbook = load_workbook(MNTH_SCORE_FILE)
-            sheet = workbook.active
-        except FileNotFoundError:
-            await update.message.reply_text("No scores found.")
-            return
-
-        global_scores = {}
-        total_users = set()
-
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row and len(row) >= 6:
-                _, chat_id, user_id, username, score, _ = row
-                total_users.add(user_id) 
-                if user_id in global_scores:
-                    global_scores[user_id]["score"] += int(score)
-                else:
-                    global_scores[user_id] = {"username": escape_markdown(username), "score": int(score)}
-
-        if not global_scores:
-            await update.message.reply_text("No scores available.")
-            return
-        sorted_global_scores = sorted(global_scores.items(), key=lambda x: x[1]["score"], reverse=True)
-        leaderboard = f"🌍 *This \\ Month Top Scorer Of Overall* 🌍\n👥 *Total Participants:* `{len(total_users)}`\n\n"
-        
-        for rank, (user_id, data) in enumerate(sorted_global_scores[:10], start=1):
-            leaderboard += f"{rank}\\) *{data['username']}* \\- `{data['score']} points`\n"
-
-        await update.message.reply_text(leaderboard, parse_mode="MarkdownV2")
-
-    except Exception as e:
-        print(f"Error in all_time_topper: {e}")
-
-async def all_time_topper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Returns the top 10 scorers across all groups, including total participants."""
-    try:
-        try:
-            workbook = load_workbook(SCORE_FILE)
-            sheet = workbook.active
-        except FileNotFoundError:
-            await update.message.reply_text("No scores found.")
-            return
-
-        global_scores = {}
-        total_users = set()
-
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row and len(row) >= 6:
-                _, chat_id, user_id, username, score, _ = row
-                total_users.add(user_id) 
-                if user_id in global_scores:
-                    global_scores[user_id]["score"] += int(score)
-                else:
-                    global_scores[user_id] = {"username": escape_markdown(username), "score": int(score)}
-
-        if not global_scores:
-            await update.message.reply_text("No scores available.")
-            return
-        sorted_global_scores = sorted(global_scores.items(), key=lambda x: x[1]["score"], reverse=True)
-        leaderboard = f"🌍 *All\\-Time Top 10 Scorers* 🌍\n👥 *Total Participants:* `{len(total_users)}`\n\n"
-        
-        for rank, (user_id, data) in enumerate(sorted_global_scores[:10], start=1):
-            leaderboard += f"{rank}\\) *{data['username']}* \\- `{data['score']} points`\n"
-
-        await update.message.reply_text(leaderboard, parse_mode="MarkdownV2")
-
-    except Exception as e:
-        print(f"Error in all_time_topper: {e}")
 
 async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups,broadcast_url
@@ -1429,90 +210,14 @@ async def add_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global broadcast_url
     if chat_id != botManagementGroupId:
         return
-
     if not context.args:
         await update.message.reply_text("Send a URL.\nExample:\n/addUrl https://t.me/yourbot")
         return
 
     newUrl = context.args[0]
-
     broadcast_url = newUrl
-
     await update.message.reply_text(f"✅ Broadcast URL updated:\n{newUrl}")
-   
-async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    global registered_groups
-
-    if chat_id != botManagementGroupId:
-        return
-
-    main_group_id = str(botManagementGroupId)
-    to_remove = set()
-
-    if main_group_id not in group_data:
-        await update.message.reply_text("❌ No message/link set in main group.")
-        return
-
-    message = group_data[main_group_id].get("message", "")
-    keyboard = [[InlineKeyboardButton("Start Quiz", callback_data='New_1')]]
-
-    # ✅ Load full Excel once
-    if os.path.exists(RegisteredGroupfile):
-        df = pd.read_excel(RegisteredGroupfile)
-    else:
-        await update.message.reply_text("❌ No registered groups found.")
-        return
-
-    last_message_map = dict(zip(df["groupid"].astype(str), df.get("last_message_id", "")))
-
-    async def send_to_group(gid):
-        gid_str = str(gid)
-        try:
-            # ✅ Delete old message if exists
-            previous_id = last_message_map.get(gid_str)
-            if previous_id and not pd.isna(previous_id):
-                try:
-                    await context.bot.delete_message(chat_id=gid, message_id=int(previous_id))
-                except Exception as e:
-                    print(f"Failed to delete old message in {gid}: {e}")
-
-            # ✅ Send new message
-            sent_msg = await context.bot.send_message(
-                chat_id=gid,
-                text=message,
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-
-            # ✅ Update map with new last_message_id
-            last_message_map[gid_str] = sent_msg.message_id
-            return True, gid
-        except Exception as e:
-            print(f"Error sending to {gid}: {e}")
-            if "bot was kicked" in str(e) or "chat not found" in str(e).lower():
-                return False, gid
-            return None, gid
-
-    # Schedule all tasks
-    tasks = [asyncio.create_task(send_to_group(gid)) for gid in registered_groups]
-    results = await asyncio.gather(*tasks)
-
-    count = 0
-    for success, gid in results:
-        if success is True:
-            count += 1
-            df.loc[df["groupid"].astype(str) == str(gid), "last_message_id"] = last_message_map[str(gid)]
-        elif success is False:
-            to_remove.add(str(gid))
-
-    if to_remove:
-        registered_groups -= to_remove
-        df = df[~df["groupid"].astype(str).isin(to_remove)]
-
-    df.to_excel(RegisteredGroupfile, index=False)
-
-    await update.message.reply_text(f"✅ Message sent to {count} groups.")
-
+ 
 async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global registered_groups
     chat = update.effective_chat
@@ -1521,163 +226,65 @@ async def register_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if chat_id_str not in registered_groups:
             registered_groups.add(chat.id)
             await save_groups()
-            
-        
-        
-
-    elif chat.type == "private":  # no need for "personal" (Telegram doesn't use that)
-        user = update.effective_user
-        add_personal_user(user)
-        if os.path.exists(personal_user_file):
-                with open(personal_user_file, 'rb') as file:
-                    await context.bot.send_document(chat_id=groupsendid, document=file)
-           
-async def add_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    if chat_id != botManagementGroupId:
-        return
-    text = " ".join(context.args)
-    if not text:
-        await update.message.reply_text("Usage: /addmessage <your message>")
-        return
-
-    group_data.setdefault(str(chat_id), {})["message"] = text
-    save_group_data()
-    await update.message.reply_text("\u2705 Message set for the main group.")
-
-async def add_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global new_timer
-    chat_id = update.effective_chat.id
-    if chat_id != botManagementGroupId:
-        return
-    input_value = " ".join(context.args)
-    try:
-        float(input_value)  # can also use int(input_value) if you want only integers
-        new_timer = input_value
-        await update.message.reply_text(f"New timer set to {new_timer}.")
-    except ValueError:
-        await update.message.reply_text("Invalid input. Please enter a numeric value for the timer.")
-
-async def show_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    if chat_id != botManagementGroupId:
-        return
-    data = group_data.get(str(chat_id), {})
-    message = data.get("message", "No message set.")
-    link = data.get("link", "")
-
-    keyboard = []
-    keyboard = [[InlineKeyboardButton("Start Quiz",callback_data='New_1')]]
-    await update.message.reply_text(
-        message,
-        reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None
-    )
-
-async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global newuploadedexcelfile
-    chat_id = update.effective_chat.id
-    if chat_id != botManagementGroupId:
-        return
-    file_name = context.args[0]
-
-    if file_name not in ALLOWED_FILES:
-        await update.message.reply_text("❌ Invalid file name. Please choose from:\n" + "\n".join(sorted(ALLOWED_FILES)))
-        return
-    
-    newuploadedexcelfile = " ".join(context.args)
-    newuploadedexcelfile = "Data/"+newuploadedexcelfile + ".xlsx"
-    
-
-    group_data.setdefault(str(chat_id), {})["link"] = newuploadedexcelfile
-    save_group_data()
-    await update.message.reply_text("\u2705 Link set for the main group.")
-
-async def add_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global newuploadedexcelfile,Promotion
-    chat_id = update.effective_chat.id
-    if chat_id != botManagementGroupId:
-        return
-    msg = context.args[0]
-    if msg.lower() =="yes":
-        Promotion = True
-        await update.message.reply_text("✅ Promotion enabled. You can now send promotional messages in the quiz.")
-        return
-
-    elif msg.lower() == "no":
-        Promotion = False
-        await update.message.reply_text("❌ Promotion disabled. No promotional messages will be sent in the quiz.")
-        return
-
-async def countdown_and_close_poll(chat_id, poll_message, context):
-    try:
-        await asyncio.sleep(int(quiz_state[chat_id]["selectedtime"]))
-        for poll in quiz_state[chat_id]["polls"]:
-            if poll["poll_id"] == poll_message.poll.id:
-                meaning = poll["meaning"]
-                if meaning and str(meaning).strip().lower() != "nan":
-                    await context.bot.send_message(chat_id, text=f"Meaning: {meaning}")
-                responses = poll.get("responses", {})
-                total_votes = len(responses)
-                if total_votes == 0:
-                    quiz_state[chat_id]["consecutive_unanswered"] += 1
-                else:
-                    quiz_state[chat_id]["consecutive_unanswered"] = 0
-                break
-        if quiz_state[chat_id]["consecutive_unanswered"] >= 3:
-            await context.bot.send_message(chat_id, text="❌ Quiz canceled due to inactivity. Restart with /startquiz")
-            quiz_state[chat_id]["active"] = False
-            await calculate_scores(chat_id, context)
-            return
-    except Exception as e:
-        print(f"Error in countdown_and_close_poll: {e}")
-
-async def handle_jsonFile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global registered_groups
-    chat_id = update.effective_chat.id
-
-    if chat_id == groupsendid and update.message.reply_to_message and update.message.reply_to_message.document:
-        try:
-            file = await context.bot.get_file(update.message.reply_to_message.document.file_id)
-            downloaded_path = await file.download_to_drive()
-
-            # Replace existing userscore.xlsx
-            if os.path.exists(RegisteredGroupfile):
-                os.remove(RegisteredGroupfile)
-
-            os.rename(downloaded_path, RegisteredGroupfile)
-            
-            if os.path.exists(RegisteredGroupfile):
-                df = pd.read_excel(RegisteredGroupfile)
-                registered_groups = set(df["groupid"].dropna().astype(str).tolist())
-            else:
-                registered_groups = set()
-            
-            updateandaddgroups()
-            await update.message.reply_text("✅ Score file updated successfully.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ Failed to update score file:\n`{e}`", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("⚠️ Please reply to an .xlsx file in the allowed group.")
-
-async def cancel_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global quiz_tasks
-    chat_id = update.message.chat_id
-    if chat_id in quiz_state and quiz_state[chat_id]["active"]:
-        quiz_state[chat_id]["active"] = False
-        quiz_scores.pop(chat_id, None)
-        quiz_state.pop(chat_id, None)
-        if chat_id in quiz_tasks:
-            task = quiz_tasks[chat_id]
-            if not task.done():
-                task.cancel()
-        await context.bot.send_message(chat_id, text="The quiz has been canceled. You can restart with /startquiz.")
-    else:
-        if chat_id in quiz_state:
-            quiz_state.pop(chat_id, None)
-            quiz_scores.pop(chat_id, None)
-        await context.bot.send_message(chat_id, text="No active quiz to cancel.")
 
 def stringify(value):
     if value is None or value == "":
         return "None"
     return str(value)
+
+
+def mark_translation_sent(srno, df):
+    df.loc[df['srno'] == srno, 'issent'] = 1
+    df.to_excel(translation_excel_path, index=False)
+
+
+def get_next_translation():
+    df = pd.read_excel(translation_excel_path)
+
+    next_row = df[df['issent'] != 1].head(1)
+
+    if next_row.empty:
+        return None, None
+
+    row = next_row.iloc[0]
+
+    data = {
+        "srno": row["srno"],
+        "hindi": row["hindi_sentence"],
+        "english": row["english_translation"]
+    }
+
+    return data, df
+
+    
+async def start_translation_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        global is_quiz_active,quiz_state, correct_users,commandfunctionpass, chat_id, unanswered_poll,cancel_active,selected_quizscore_count,quiz_kick
+        cancel_active = False
+    
+        chat_id = update.message.chat.id
+
+        if chat_id in quiz_state:
+            await update.message.chat.send_message('A quiz is already running in this group. Wait or Cancel it by /cancelquiz')
+            return
+        if chat_id not in quiz_state:
+            quiz_state[chat_id] = {
+                "is_active": True,
+                "active":True,
+                "polls": [],
+                "scores": {},  
+                "quiz_kick": False,  
+                "cancel_active": False,  
+                "consecutive_unanswered": 0,
+                "selected_poll_count": 0,  
+            }
+
+        selected_quizscore_count=0
+        correct_users.clear() 
+        reply_markup =  InlineKeyboardMarkup(StartingSubject0())
+        try:
+            await update.message.chat.send_message('Select the Quiz type:', reply_markup=reply_markup)
+        except (BadRequest, Forbidden, TimedOut) as e:
+                print(f"Error canceling the quiz: {e}")
+    except (BadRequest, Forbidden, TimedOut) as e:
+                print(e)
