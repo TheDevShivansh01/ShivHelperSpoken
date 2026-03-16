@@ -196,16 +196,29 @@ async def adddata_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[adddata_command] Unexpected: {e}")
         await update.message.reply_text("❌ Something went wrong. Please try again.")
 
-def _mask_sentence(correct: str) -> str:
-    words = correct.split()
-    masked = []
-    for word in words:
-        if len(word) <= 3:
-            masked.append(word)         
-        else:
-            masked.append(word[0] + "_" * (len(word) - 1))  
-    return " ".join(masked)
+def _mask_sentence(correct: str, user_answer: str) -> str:
+    """
+    Show words user got right, mask words they got wrong.
+    correct:     "Ram goes to school yesterday with car"
+    user_answer: "Ram come to school tomorrow with car"
+    result:      "Ram g___ to school y_________ with car"
+    """
+    correct_words = correct.split()
+    user_words    = user_answer.split()
 
+    masked = []
+    for i, word in enumerate(correct_words):
+        # If user wrote same word at same position → show it
+        if i < len(user_words) and user_words[i].lower() == word.lower():
+            masked.append(word)
+        # If word is short → show it always
+        elif len(word) <= 3:
+            masked.append(word)
+        # Otherwise mask it
+        else:
+            masked.append(word[0] + "_" * (len(word) - 1))
+
+    return " ".join(masked)
 
 def load_sentences(filepath: str) -> pd.DataFrame:
     """Load excel file with columns: srno, hindi, english"""
@@ -602,10 +615,10 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
             state["scores"][user_id]["rounds"] += 1
             
             hint_text = "" 
-            if score < 90:
-                masked   = _mask_sentence(correct_english)
+            if score < 100:
+                masked    = _mask_sentence(correct_english, message_text)
                 hint_text = f"\n\n💡 <b>Hint:</b> <code>{masked}</code>"
-            # Reply with result
+            
             reply_text = (
                 f"✅ <b>{user_name}</b>, you scored <b>{score}%</b>!"
                 f"{'🎉 Excellent!' if score >= 90 else '👍 Good job!'}"
