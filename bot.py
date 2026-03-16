@@ -35,7 +35,7 @@ def main():
     application.add_handler(CallbackQueryHandler(difficulty_callback, pattern="^tg_diff_"))
     scheduler = AsyncIOScheduler(timezone=timezone('Asia/Kolkata'))
     loop = asyncio.get_event_loop()
-    scheduler.add_job(schedule_send_thought_job, 'cron', hour=13, minute=23, args=[application, loop])
+    scheduler.add_job(schedule_send_thought_job, 'cron', hour=7, minute=00, args=[application, loop])
     scheduler.start()
     application.run_polling()
 
