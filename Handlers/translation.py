@@ -196,6 +196,16 @@ async def adddata_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[adddata_command] Unexpected: {e}")
         await update.message.reply_text("❌ Something went wrong. Please try again.")
 
+def _mask_sentence(correct: str) -> str:
+    words = correct.split()
+    masked = []
+    for word in words:
+        if len(word) <= 3:
+            masked.append(word)         
+        else:
+            masked.append(word[0] + "_" * (len(word) - 1))  
+    return " ".join(masked)
+
 
 def load_sentences(filepath: str) -> pd.DataFrame:
     """Load excel file with columns: srno, hindi, english"""
@@ -582,7 +592,7 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
         # Calculate match
         score = calculate_match_percentage(message_text, correct_english)
  
-        if score >= 55:
+        if score >= 50:
             state["answered_users"].add(user_id)
  
             
@@ -590,16 +600,25 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
                 state["scores"][user_id] = {"name": user_name, "total": 0.0, "rounds": 0}
             state["scores"][user_id]["total"] += score
             state["scores"][user_id]["rounds"] += 1
- 
+            
+            hint_text = "" 
+            if score < 90:
+                masked   = _mask_sentence(correct_english)
+                hint_text = f"\n\n💡 <b>Hint:</b> <code>{masked}</code>"
             # Reply with result
-            try: 
-                await update.message.reply_text(
-                f"✅ *{user_name}*, you scored *{score}%*! {'🎉 Excellent!' if score >= 90 else '👍 Good job!'}",
-                parse_mode="Markdown"
+            reply_text = (
+                f"✅ <b>{user_name}</b>, you scored <b>{score}%</b>!"
+                f"{'🎉 Excellent!' if score >= 90 else '👍 Good job!'}"
+                f"{hint_text}"
                 )
-            except Exception as ex:
-                await context.bot.send_message(chat_id=chat_id,text=f"✅ *{user_name}*, you scored *{score}%*! {'🎉 Excellent!' if score >= 90 else '👍 Good job!'}",
-                parse_mode="Markdown")
+            try:
+                await update.message.reply_text(reply_text, parse_mode="HTML")
+            except Exception:
+                await context.bot.send_message(
+            chat_id=chat_id,
+            text=reply_text,
+            parse_mode="HTML"
+            )
  
             # Auto-advance if score ≥ 90%
             if score >= 90:

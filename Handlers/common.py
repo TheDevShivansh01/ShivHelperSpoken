@@ -250,3 +250,11 @@ async def update_report_command(update: Update, context: ContextTypes.DEFAULT_TY
         f"<b>Not in list ({len(not_in_list)}):</b>\n{ignored_text}",
         parse_mode="HTML"
     )
+
+async def download_report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id != groupsendid:
+        await update.message.reply_text("❌ This command is not allowed here.")
+        return
+    await send_all_files_as_zip(context, chat_id=groupsendid, zip_name="daily_report.zip")
+    await update.message.reply_text("✅ Report sent!")

@@ -2,7 +2,7 @@ from telegram.ext import  Application,filters, CommandHandler,MessageHandler
 from Handlers.command import TOKEN, start_command,help_command
 from Handlers.command import register_group,add_url,forceregister,broadcast_message
 from Handlers.translation import start_translation_command,mystreak_command,adddata_command,cancel_translation_command,difficulty_callback,next_sentence_command,translation_message_handler
-from Handlers.common import send_thought_of_the_day,scheduled_send_thought,update_report_command
+from Handlers.common import send_thought_of_the_day,download_report_command,scheduled_send_thought,update_report_command
 from Handlers.voice import handle_voice_message
 from telegram.ext import CallbackQueryHandler 
 import asyncio,time
@@ -31,6 +31,7 @@ def main():
     application.add_handler(CommandHandler("forceregister", forceregister))
     application.add_handler(CommandHandler("mystreak", mystreak_command))
     application.add_handler(CommandHandler("adddata", adddata_command))
+    application.add_handler(CommandHandler("downloadreport", download_report_command))
     application.add_handler(CommandHandler("updatereport", update_report_command))
     application.add_handler(CallbackQueryHandler(difficulty_callback, pattern="^tg_diff_"))
     scheduler = AsyncIOScheduler(timezone=timezone('Asia/Kolkata'))
