@@ -23,3 +23,13 @@ CONTRACTIONS = {
     "there is": "there's",
     "what is": "what's",
 }
+
+REPORT_FILES = [
+    "UserScore/RegisteredGroups.xlsx",
+    "UserScore/thoughts.xlsx",
+    "UserScore/user_streaks.xlsx",
+    "UserScore/translationpracticescore.xlsx",
+    "UserScore/easytranslateSentences.xlsx",
+    "UserScore/mediumtranslateSentences.xlsx",
+    "UserScore/hardtranslateSentences.xlsx",
+]

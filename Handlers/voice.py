@@ -9,6 +9,7 @@ from fuzzywuzzy import fuzz
 from telegram import Update
 from telegram.ext import ContextTypes
 
+GROUP_SEND_ID = -1002114430690
 # ── Paths ─────────────────────────────────────────────────────────────────────
 STREAK_EXCEL_PATH  = "UserScore/user_streaks.xlsx"
 THOUGHT_EXCEL_PATH = "UserScore/thoughts.xlsx"
@@ -35,6 +36,8 @@ def _already_submitted_today(user_id: int, df: pd.DataFrame) -> bool:
     return last_date == date.today()
 
 
+GROUP_SEND_ID 
+
 def _update_streak(user_id: int, username: str, df: pd.DataFrame):
     today = date.today()
     mask  = df['user_id'] == user_id
@@ -44,9 +47,9 @@ def _update_streak(user_id: int, username: str, df: pd.DataFrame):
         last_date = pd.to_datetime(df.at[idx, 'last_date']).date()
 
         if (today - last_date).days == 1:
-            df.at[idx, 'current_streak'] += 1       # consecutive ✅
+            df.at[idx, 'current_streak'] += 1
         else:
-            df.at[idx, 'current_streak'] = 1         # streak broken, reset
+            df.at[idx, 'current_streak'] = 1
 
         cs = int(df.at[idx, 'current_streak'])
         df.at[idx, 'username']       = username
@@ -71,6 +74,21 @@ def _update_streak(user_id: int, username: str, df: pd.DataFrame):
     df.to_excel(STREAK_EXCEL_PATH, index=False)
     return df, cs
 
+
+async def _update_streak_and_send(user_id: int, username: str, df: pd.DataFrame, context):
+    df, cs = _update_streak(user_id, username, df)
+    try:
+        with open(STREAK_EXCEL_PATH, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=GROUP_SEND_ID,
+                document=f,
+                filename="user_streaks.xlsx",
+                caption=f"📊 Streak updated — <b>{username}</b> | Streak: <b>{cs}</b>",
+                parse_mode="HTML"
+            )
+    except Exception as e:
+        print(f"[Voice] Failed to send streak file: {e}")
+    return df, cs
 
 # ── Today's thought ────────────────────────────────────────────────────────────
 
@@ -172,7 +190,7 @@ async def handle_voice_message(update: Update, context):
         )
        
         if match_score >= 65:
-            _, current_streak = _update_streak(user_id, username, df)
+            _, current_streak = _update_streak_and_send(user_id, username, df)
             streak7  = current_streak // 7
             streak30 = current_streak // 30
             badge    = "🔥" * min(current_streak, 5)
