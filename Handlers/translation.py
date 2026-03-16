@@ -571,6 +571,7 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
       - user hasn't already scored ≥75% this round
     """
     try:
+       
         if not update.message or not update.message.text:
             return
  
@@ -597,7 +598,7 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
         words = message_text.split()
         if len(words) <= 2:
             return
- 
+        
         correct_english = state.get("current_english", "")
         if not correct_english:
             return
