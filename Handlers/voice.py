@@ -190,7 +190,7 @@ async def handle_voice_message(update: Update, context):
         )
        
         if match_score >= 65:
-            _, current_streak = _update_streak_and_send(user_id, username, df)
+            _, current_streak = await  _update_streak_and_send(user_id, username, df,context)
             streak7  = current_streak // 7
             streak30 = current_streak // 30
             badge    = "🔥" * min(current_streak, 5)
