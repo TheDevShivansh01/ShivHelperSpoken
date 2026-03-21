@@ -6,6 +6,8 @@ from html import escape
 import asyncio, json
 import pandas as pd
 import os, random
+from telegram import Update, ChatMemberUpdated
+from telegram.ext import ContextTypes, ChatMemberHandler
 import zipfile
 import io
 from telegram.error import Forbidden, BadRequest
@@ -57,12 +59,87 @@ async def scheduled_send_thought(app):
     await send_thought_of_the_day(DummyUpdate(), DummyContext())
     
 
+
+async def bot_added_to_group_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Fires when bot's status changes in any chat."""
+    try:
+        result: ChatMemberUpdated = update.my_chat_member
+        if not result:
+            return
+
+        new_status = result.new_chat_member.status
+        chat       = result.chat
+        chat_id    = chat.id
+        chat_type  = chat.type
+
+        # only groups and supergroups
+        if chat_type not in ("group", "supergroup"):
+            return
+
+        if new_status in ("member", "administrator"):
+            # bot added — register group
+            registered_groups.add(chat_id)
+            await save_groups()
+            save_group_data()
+            print(f"[bot_added] Registered new group: {chat_id} ({chat.title})")
+
+            # notify management group
+            try:
+                await context.bot.send_message(
+                    chat_id=botManagementGroupId,
+                    text=(
+                        f"✅ <b>Bot added to new group!</b>\n\n"
+                        f"├ Name  → <b>{chat.title}</b>\n"
+                        f"├ ID    → <b>{chat_id}</b>\n"
+                        f"└ Type  → <b>{chat_type}</b>\n\n"
+                        f"<i>Group registered automatically.</i>"
+                    ),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"[bot_added] Could not notify management: {e}")
+
+        elif new_status in ("left", "kicked"):
+            # bot removed — unregister group
+            registered_groups.discard(chat_id)
+            await save_groups()
+            save_group_data()
+            print(f"[bot_removed] Unregistered group: {chat_id} ({chat.title})")
+
+            try:
+                await context.bot.send_message(
+                    chat_id=botManagementGroupId,
+                    text=(
+                        f"⚠️ <b>Bot removed from group!</b>\n\n"
+                        f"├ Name  → <b>{chat.title}</b>\n"
+                        f"├ ID    → <b>{chat_id}</b>\n\n"
+                        f"<i>Group unregistered automatically.</i>"
+                    ),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"[bot_removed] Could not notify management: {e}")
+
+    except Exception as e:
+        print(f"[bot_added_to_group_handler] {e}")
+
+
 async def send_thought_of_the_day(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     global registered_groups, botManagementGroupId
-    
+
     chat_id = update.effective_chat.id
     if chat_id != botManagementGroupId:
         return
+
+    try:
+        if os.path.exists(RegisteredGroupfile):
+            with open(RegisteredGroupfile, "r") as f:
+                data = json.load(f)
+                registered_groups = set(data.get("groups", []))
+            print(f"[send_thought] Loaded {len(registered_groups)} groups from file")
+    except Exception as e:
+        print(f"[send_thought] Could not reload groups: {e}")
     word_data, df = get_next_unsent_word()
     if not word_data:
         await update.message.reply_text("✅ All words have already been sent.")

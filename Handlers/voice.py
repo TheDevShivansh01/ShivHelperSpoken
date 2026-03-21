@@ -5,6 +5,7 @@ import speech_recognition as sr
 import pandas as pd
 from datetime import date
 from pydub import AudioSegment
+from Handlers import readandrecord as rar_module
 from fuzzywuzzy import fuzz
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -33,10 +34,7 @@ def _already_submitted_today(user_id: int, df: pd.DataFrame) -> bool:
     if not mask.any():
         return False
     last_date = pd.to_datetime(df[mask].iloc[0]['last_date']).date()
-    return last_date == date.today()
-
-
-GROUP_SEND_ID 
+    return last_date == date.today()     
 
 def _update_streak(user_id: int, username: str, df: pd.DataFrame):
     today = date.today()
@@ -130,25 +128,14 @@ def _transcribe(wav_path: str) -> str | None:
 
 
 # ── Main handler ───────────────────────────────────────────────────────────────
-
 async def handle_voice_message(update: Update, context):
     message = update.message
     if not message or not message.voice:
         return
-
-    # ── Today's thought must exist ─────────────────────────────────────────────
-    thought = _get_todays_thought()
-    if not thought:
-        return  # No thought sent today, silently ignore
-
+    chat_id=message.chat.id
     user     = message.from_user
     user_id  = user.id
     username = user.username or user.first_name or f"user_{user_id}"
-
-    # ── Silently ignore if already submitted today ─────────────────────────────
-    df = _load_streak_df()
-    if _already_submitted_today(user_id, df):
-        return
 
     ogg_path = None
     wav_path = None
@@ -160,7 +147,7 @@ async def handle_voice_message(update: Update, context):
             ogg_path = tmp.name
         await voice_file.download_to_drive(ogg_path)
 
-        # ── Convert + Transcribe (blocking → run in executor) ──────────────────
+        # ── Convert + Transcribe ───────────────────────────────────────────────
         loop = asyncio.get_event_loop()
 
         def process():
@@ -171,16 +158,31 @@ async def handle_voice_message(update: Update, context):
         wav_path, transcribed = await loop.run_in_executor(None, process)
 
         if not transcribed:
-          
             try:
                 await message.reply_text(
-                "🎙️ Couldn't understand your voice. Please speak clearly and try again!"
+                    "🎙️ Couldn't understand your voice. Please speak clearly and try again!"
                 )
             except Exception:
                 await context.bot.send_message(
-            chat_id=message.chat.id,
-            text="🎙️ Couldn't understand your voice. Please speak clearly and try again!"
-            )
+                    chat_id=message.chat.id,
+                    text="🎙️ Couldn't understand your voice. Please speak clearly and try again!"
+                )
+            return
+
+        # ── RAR CHECK FIRST — before any daily thought logic ──────────────────
+        if rar_module.rar_chat_state.get(chat_id) and rar_module.rar_chat_state[chat_id].get("paragraph"):
+            handled = await rar_module.handle_rar_voice(update, context, transcribed)
+            if handled:
+                return
+        # ──────────────────────────────────────────────────────────────────────
+
+        # ── Daily Thought checks (only if NOT a RAR voice) ────────────────────
+        thought = _get_todays_thought()
+        if not thought:
+            return
+
+        df = _load_streak_df()
+        if _already_submitted_today(user_id, df):
             return
 
         # ── Fuzzy match ────────────────────────────────────────────────────────
@@ -188,38 +190,36 @@ async def handle_voice_message(update: Update, context):
             transcribed.lower(),
             thought.lower()
         )
-       
+
         if match_score >= 65:
-            _, current_streak = await  _update_streak_and_send(user_id, username, df,context)
+            _, current_streak = await _update_streak_and_send(user_id, username, df, context)
             streak7  = current_streak // 7
             streak30 = current_streak // 30
             badge    = "🔥" * min(current_streak, 5)
             try:
                 await message.reply_text(
-                f"✅ <b>Well done, {username}!</b> {badge}\n\n"
-                f"📖 Match Score    : <b>{match_score}%</b>\n"
-                f"📅 Current Streak : <b>{current_streak} day(s)</b>\n"
-                f"🏆 Week Badges  (÷7)  : <b>{streak7}</b>\n"
-                f"🥇 Month Badges (÷30) : <b>{streak30}</b>",
-                parse_mode="HTML"
+                    f"✅ <b>Well done, {username}!</b> {badge}\n\n"
+                    f"📖 Match Score    : <b>{match_score}%</b>\n"
+                    f"📅 Current Streak : <b>{current_streak} day(s)</b>\n"
+                    f"🏆 Week Badges  (÷7)  : <b>{streak7}</b>\n"
+                    f"🥇 Month Badges (÷30) : <b>{streak30}</b>",
+                    parse_mode="HTML"
                 )
             except Exception as ex:
                 await context.bot.send_message(
                     chat_id=message.chat.id,
                     text=(
-                    f"✅ <b>Well done, {username}!</b> {badge}\n\n"
-                    f"📖 Match Score    : <b>{match_score}%</b>\n"
-                    f"📅 Current Streak : <b>{current_streak} day(s)</b>\n"
-                    f"🏆 Week Badges  (÷7)  : <b>{streak7}</b>\n"
-                    f"🥇 Month Badges (÷30) : <b>{streak30}</b>"
+                        f"✅ <b>Well done, {username}!</b> {badge}\n\n"
+                        f"📖 Match Score    : <b>{match_score}%</b>\n"
+                        f"📅 Current Streak : <b>{current_streak} day(s)</b>\n"
+                        f"🏆 Week Badges  (÷7)  : <b>{streak7}</b>\n"
+                        f"🥇 Month Badges (÷30) : <b>{streak30}</b>"
                     ),
-                parse_mode="HTML"
+                    parse_mode="HTML"
                 )
-        
 
     except Exception as e:
         print(f"[Voice] Error for {username}: {e}")
-        # Silently fail on Render — don't spam users with error messages
 
     finally:
         for path in [ogg_path, wav_path]:

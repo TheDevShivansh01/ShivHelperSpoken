@@ -24,6 +24,7 @@ CONTRACTIONS = {
     "what is": "what's",
 }
 
+
 REPORT_FILES = [
     "UserScore/RegisteredGroups.xlsx",
     "UserScore/thoughts.xlsx",
@@ -32,4 +33,9 @@ REPORT_FILES = [
     "UserScore/easytranslateSentences.xlsx",
     "UserScore/mediumtranslateSentences.xlsx",
     "UserScore/hardtranslateSentences.xlsx",
+    "UserScore/rar_daily_usage.xlsx",
+    "Data/payment.jpg" ,
+    "UserScore/speechscore.xlsx",
+    "UserScore/premium_tokens.xlsx",
+    "Data/reading_paragraphs.xlsx"
 ]

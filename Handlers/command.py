@@ -107,27 +107,6 @@ async def forceregister(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text("Error while force registering the group.")
        
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
-    chat = update.effective_chat
-    user_id = update.effective_user.id
-
-    if chat.type not in ["group", "supergroup"]:
-        try:
-            member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
-            if member.status in ["member", "administrator", "creator"]:
-                await context.bot.send_message(chat_id, text="✅ Welcome back! Use /startTranslation to start the Translation.")
-            else:
-                await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
-                await context.bot.send_message(chat_id, text="Then use /startTranslation Command To start the Translation")
-        except Exception as e:
-            print(f"Error checking membership: {e}")
-            await context.bot.send_message(chat_id, text="Please Join this Channel To Support Us: @currentaffairs_04")
-            await context.bot.send_message(chat_id, text="Then use /startTranslation Command To start the Translation")
-    else:
-        # In group chats
-        await context.bot.send_message(chat_id, text="use /startTranslation Command To start the Translation")
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
     text = (
@@ -256,35 +235,3 @@ def get_next_translation():
 
     return data, df
 
-    
-async def start_translation_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        global is_quiz_active,quiz_state, correct_users,commandfunctionpass, chat_id, unanswered_poll,cancel_active,selected_quizscore_count,quiz_kick
-        cancel_active = False
-    
-        chat_id = update.message.chat.id
-
-        if chat_id in quiz_state:
-            await update.message.chat.send_message('A quiz is already running in this group. Wait or Cancel it by /cancelquiz')
-            return
-        if chat_id not in quiz_state:
-            quiz_state[chat_id] = {
-                "is_active": True,
-                "active":True,
-                "polls": [],
-                "scores": {},  
-                "quiz_kick": False,  
-                "cancel_active": False,  
-                "consecutive_unanswered": 0,
-                "selected_poll_count": 0,  
-            }
-
-        selected_quizscore_count=0
-        correct_users.clear() 
-        reply_markup =  InlineKeyboardMarkup(StartingSubject0())
-        try:
-            await update.message.chat.send_message('Select the Quiz type:', reply_markup=reply_markup)
-        except (BadRequest, Forbidden, TimedOut) as e:
-                print(f"Error canceling the quiz: {e}")
-    except (BadRequest, Forbidden, TimedOut) as e:
-                print(e)

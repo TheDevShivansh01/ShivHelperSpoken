@@ -11,6 +11,7 @@ from Handlers.command import register_group
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.helpers import escape_markdown
 from Handlers.voice import STREAK_EXCEL_PATH,_load_streak_df
+from Handlers.manageTokens import BOT_MANAGEMENT_GROUP_ID, addpara_message_handler
 
 EASY_FILEPATH = "UserScore/easytranslateSentences.xlsx"
 MEDIUM_FILEPATH = "UserScore/mediumtranslateSentences.xlsx"
@@ -576,7 +577,11 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
             return
  
         chat_id = update.message.chat.id
-
+        # management group messages
+        if chat_id == BOT_MANAGEMENT_GROUP_ID:
+            handled = await addpara_message_handler(update, context)
+            if handled:
+                return
         await register_group(update, context)
         if chat_id not in translation_game_state:
             return
