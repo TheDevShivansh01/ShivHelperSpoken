@@ -33,7 +33,7 @@ PARA_MIN_WORDS = {
 
 PREMIUM_PRICE      = "₹10"
 PREMIUM_TOKENS     = 50  # ← apna QR image yahan rakho
-BOT_USERNAME       = "Tesingt_04bot"
+BOT_USERNAME       = "spoken_helper_bot"
 addpara_state: dict = {}
 deletepara_state: dict = {}
 
