@@ -6,6 +6,12 @@ import pandas as pd
 from datetime import date
 from pydub import AudioSegment
 from Handlers import readandrecord as rar_module
+from Handlers.readandrecord import (
+    handle_rar_voice,
+    rar_chat_state,
+    handle_word_practice_voice,   # ← ADD
+    word_practice_state,          # ← ADD
+)
 from fuzzywuzzy import fuzz
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -168,6 +174,12 @@ async def handle_voice_message(update: Update, context):
                     text="🎙️ Couldn't understand your voice. Please speak clearly and try again!"
                 )
             return
+        
+
+        if user_id in word_practice_state:
+            handled = await handle_word_practice_voice(update, context, transcribed)
+            if handled:
+                return
 
         # ── RAR CHECK FIRST — before any daily thought logic ──────────────────
         if rar_module.rar_chat_state.get(chat_id) and rar_module.rar_chat_state[chat_id].get("paragraph"):

@@ -29,5 +29,6 @@ Werkzeug==3.0.4
 pandas==2.2.3
 SpeechRecognition
 pydub
+gTTs
 fuzzywuzzy
 python-Levenshtein

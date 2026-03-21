@@ -10,6 +10,10 @@ from telegram.ext import ContextTypes
 from Handlers.manageTokens  import _get_user_tokens,_deduct_token
 from telegram.error import BadRequest, Forbidden, TimedOut
 from Handlers.utils import _safe_reply
+import tempfile
+import os
+from gtts import gTTS
+from pydub import AudioSegment
 
 READING_FILEPATH  = "Data/reading_paragraphs.xlsx"
 PREMIUM_TOKEN_PATH = "UserScore/premium_tokens.xlsx"
@@ -29,8 +33,8 @@ BOT_USERNAME       = "spoken_helper_bot"
 
 DAILY_LIMIT_NON_MEMBER = 2
 DAILY_LIMIT_MEMBER     = 10
-MIN_SCORE_TO_COUNT     = 50
-
+MIN_SCORE_TO_COUNT     = 30
+word_practice_state: dict = {}
 LEVEL_LABELS = {
     "easy"    : "🟢 Easy",
     "medium"  : "🟡 Medium",
@@ -272,6 +276,7 @@ async def _is_channel_member(context: ContextTypes.DEFAULT_TYPE, user_id: int) -
 # ── Score utils ───────────────────────────────────────────────────────────────
 def _normalize(text: str) -> str:
     text = text.lower().strip()
+    text = re.sub(r"-", " ", text)          # ← ADD: hyphen → space
     text = re.sub(r"[^\w\s]", "", text)
     text = re.sub(r"\s+", " ", text)
     return text
@@ -428,10 +433,38 @@ async def rar_level_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             print(f"[rar_level_callback] Could not send paragraph: {e}")
 
+
+def _get_mismatch_words(paragraph: str, transcript: str, max_words: int = 10) -> list:
+    def clean_words(text):
+        text = text.lower().strip()
+        text = re.sub(r"-", " ", text)       # ← ADD: hyphen → space
+        text = re.sub(r"[^\w\s]", "", text)
+        return text.split()
+
+    para_words       = clean_words(paragraph)
+    transcript_words = clean_words(transcript)
+
+    mismatches = []
+    for i, correct in enumerate(para_words):
+        if len(correct) < 3:
+            continue
+        if i < len(transcript_words):
+            user_word = transcript_words[i]
+            if correct != user_word:
+                mismatches.append((correct, user_word))
+        else:
+            mismatches.append((correct, "—"))
+
+    mismatches.sort(key=lambda x: len(x[0]), reverse=True)
+    return mismatches[:max_words]
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  Voice handler — called from voice.py
 # ══════════════════════════════════════════════════════════════════════════════
 # ── handle_rar_voice ──────────────────────────────────────────────────────────
+
+
 async def handle_rar_voice(
     update    : Update,
     context   : ContextTypes.DEFAULT_TYPE,
@@ -464,19 +497,18 @@ async def handle_rar_voice(
 
         if info["remaining"] <= 0:
             await _send_limit_reached_msg(update, context, info)
-            return
+            return True
+
         # ── deduct session + token if premium ─────────────────────────────
         if info["free_remaining"] > 0:
             _increment_daily_count(user_id)
         elif info["is_premium"] and info["tokens"] > 0:
             _deduct_token(user_id)
-        
-        new_remaining = max(0, info["remaining"] - 1)  # only deduct token if premium user
+
+        new_remaining = max(0, remaining - 1)
+
         _save_speech_score(user_id, chat_id, username, score, level)
         session["recorded_users"].add(user_id)
-
-        # remaining after this deduction
-        new_remaining = max(0, remaining - 1)
 
         stats = _get_user_speech_stats(user_id, chat_id)
         rank  = _speech_rank(stats["avg_score"])
@@ -488,21 +520,23 @@ async def handle_rar_voice(
 
         level_label = LEVEL_LABELS.get(level, level.capitalize())
 
-        # token remaining show karo if premium
+        # ── session line ───────────────────────────────────────────────────
         if info["is_premium"]:
-            tokens_left = _get_user_tokens(user_id)
+            tokens_left  = _get_user_tokens(user_id)
+            free_base    = DAILY_LIMIT_MEMBER if info["is_member"] else DAILY_LIMIT_NON_MEMBER
             session_line = (
                 f"📅 <b>Sessions Today</b>\n"
-                f"├ 🔄 Free Left    →  <b>{max(0, info['free_remaining'] - 1)}/{DAILY_LIMIT_MEMBER if info['is_member'] else DAILY_LIMIT_NON_MEMBER}</b>\n"
+                f"├ 🔄 Free Left    →  <b>{max(0, info['free_remaining'] - 1)}/{free_base}</b>\n"
                 f"├ 🎟️ Tokens Left  →  <b>{tokens_left}</b>\n"
                 f"└ 📊 Total Left   →  <b>{new_remaining}</b>\n"
             )
         else:
             session_line = (
                 f"📅 <b>Sessions Today</b>\n"
-                f"└ 🔄 Remaining  →  <b>{new_remaining}/{info['daily_limit']}</b>  {info['plan']}\n"
+                f"└ 🔄 Remaining  →  <b>{new_remaining}/{daily_limit}</b>  {info['plan']}\n"
             )
 
+        # ── result message ─────────────────────────────────────────────────
         reply = (
             f"🎙️ <b>Read &amp; Record — Result</b>\n"
             f"{'━' * 20}\n\n"
@@ -516,6 +550,7 @@ async def handle_rar_voice(
             f"└ 🏅 Speech Rank   →  {rank}\n\n"
             f"{session_line}"
         )
+
         next_keyboard = None
         if new_remaining > 0:
             next_keyboard = InlineKeyboardMarkup([[
@@ -524,6 +559,62 @@ async def handle_rar_voice(
             ]])
 
         await _safe_reply(update, context, reply, reply_markup=next_keyboard)
+
+        # ── pronunciation check — alag message ────────────────────────────
+        if score < 95:
+            mismatches = _get_mismatch_words(paragraph, transcript)
+            if mismatches:
+                mismatch_words = [correct for correct, _ in mismatches]
+
+                # ── word list message ──────────────────────────────────────
+                practice_msg = _build_practice_message(mismatch_words, set())
+
+                try:
+                    sent_msg = await update.message.reply_text(
+                        practice_msg, parse_mode="HTML"
+                    )
+                except Exception:
+                    try:
+                        sent_msg = await context.bot.send_message(
+                            chat_id=chat_id,
+                            text=practice_msg,
+                            parse_mode="HTML"
+                        )
+                    except Exception as e:
+                        print(f"[handle_rar_voice] practice msg failed: {e}")
+                        sent_msg = None
+
+                # ── save word practice session ─────────────────────────────
+                if sent_msg:
+                    word_practice_state[user_id] = {
+                        "words"     : mismatch_words,
+                        "completed" : set(),
+                        "chat_id"   : chat_id,
+                        "message_id": sent_msg.message_id,
+                    }
+
+                # ── TTS audio — bot khud pronounce karke bheje ────────────
+                ogg_path = _generate_tts_audio(mismatch_words)
+                if ogg_path:
+                    try:
+                        with open(ogg_path, "rb") as audio_file:
+                            await context.bot.send_voice(
+                                chat_id=chat_id,
+                                voice=audio_file,
+                                caption=(
+                                    f"🔊 <b>Listen & Practice</b>\n"
+                                    f"<i>Bot is pronouncing each word slowly.\n"
+                                    f"Record yourself saying the same words one by one!</i>"
+                                ),
+                                parse_mode="HTML"
+                            )
+                    except Exception as e:
+                        print(f"[handle_rar_voice] TTS send failed: {e}")
+                    finally:
+                        try:
+                            os.unlink(ogg_path)
+                        except Exception:
+                            pass
         return True
 
     except (BadRequest, Forbidden, TimedOut) as e:
@@ -532,7 +623,6 @@ async def handle_rar_voice(
     except Exception as e:
         print(f"[handle_rar_voice] Unexpected: {e}")
         return False
-    
 
 async def _send_limit_reached_msg(update, context, info: dict):
     is_member = info["plan"] == "✅ Channel Member"
@@ -960,3 +1050,132 @@ async def mss_back_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[mss_back_callback] {e}")
 
+def _generate_tts_audio(words: list) -> str | None:
+    """
+    Generate TTS audio for list of words with pause between each.
+    Returns path to OGG file or None on failure.
+    """
+    try:
+        # join words with ... for natural pause
+        text = " ... ".join(words)
+        tts  = gTTS(text=text, lang="en", slow=True)   # slow=True for clearer pronunciation
+
+        tmp_mp3 = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        tts.save(tmp_mp3.name)
+        tmp_mp3.close()
+
+        # convert mp3 to ogg for telegram voice
+        ogg_path = tmp_mp3.name.replace(".mp3", ".ogg")
+        audio = AudioSegment.from_mp3(tmp_mp3.name)
+        audio.export(ogg_path, format="ogg", codec="libopus")
+        os.unlink(tmp_mp3.name)
+
+        return ogg_path
+    except Exception as e:
+        print(f"[_generate_tts_audio] {e}")
+        return None
+
+
+def _build_practice_message(words: list, completed: set) -> str:
+    """Build word practice message with ticks for completed words."""
+    lines = []
+    for i, word in enumerate(words, 1):
+        if word in completed:
+            lines.append(f"  {i}. ✅ <s>{word}</s>")
+        else:
+            lines.append(f"  {i}. 🔸 <b>{word}</b>")
+
+    remaining = len(words) - len(completed)
+
+    msg = (
+        f"🎯 <b>Word Practice Session</b>\n"
+        f"━━━━━━━━━━━━━━━━\n\n"
+        f"<i>Record each word clearly. 90%+ match = done!</i>\n\n"
+        f"{''.join(chr(10) + l for l in lines)}\n\n"
+    )
+
+    if remaining == 0:
+        msg += "🎉 <b>All words completed! Great job!</b>"
+    else:
+        msg += f"🎤 <i>Say any word above to practice. {remaining} remaining.</i>"
+
+    return msg
+
+async def handle_word_practice_voice(
+    update    : Update,
+    context   : ContextTypes.DEFAULT_TYPE,
+    transcript: str,
+) -> bool:
+    """
+    Called from voice.py BEFORE handle_rar_voice check.
+    Returns True if handled here.
+    """
+    try:
+        user_id = update.effective_user.id
+        chat_id = update.effective_chat.id
+
+        session = word_practice_state.get(user_id)
+        if not session:
+            return False
+
+        words      = session["words"]
+        completed  = session["completed"]
+        message_id = session["message_id"]
+
+        transcript_clean = _normalize(transcript)
+
+        matched_word = None
+        for word in words:
+            if word in completed:
+                continue   # already done
+
+            word_clean = _normalize(word)
+            # similarity between transcript and single word
+            from difflib import SequenceMatcher
+            ratio = SequenceMatcher(None, transcript_clean, word_clean).ratio() * 100
+
+            if ratio >= 60:
+                matched_word = word
+                break
+
+        if not matched_word:
+            # no match — silent, let them try again
+            return True
+
+        # ── word matched ──────────────────────────────────────────────────
+        completed.add(matched_word)
+        session["completed"] = completed
+
+        # update message with green tick
+        updated_msg = _build_practice_message(words, completed)
+        try:
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=updated_msg,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"[handle_word_practice_voice] edit failed: {e}")
+
+        # all words done
+        if len(completed) == len(words):
+            word_practice_state.pop(user_id, None)
+            try:
+                await update.message.reply_text(
+                    "🎉 <b>Word Practice Complete!</b>\n\n"
+                    "You've successfully pronounced all words!  Next Para with /record💪",
+                    parse_mode="HTML"
+                )
+            except Exception:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="🎉 <b>Word Practice Complete!</b>\n\nYou've successfully pronounced all words! 💪",
+                    parse_mode="HTML"
+                )
+
+        return True
+
+    except Exception as e:
+        print(f"[handle_word_practice_voice] {e}")
+        return False
