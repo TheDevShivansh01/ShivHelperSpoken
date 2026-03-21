@@ -23,7 +23,7 @@ PREMIUM_CONTACT    = "https://t.me/O000000000O00000000O"
 
 PREMIUM_PRICE      = "₹10"
 PREMIUM_TOKENS     = 50  # ← apna QR image yahan rakho
-BOT_USERNAME       = "Tesingt_04bot"
+BOT_USERNAME       = "spoken_helper_bot"
 
 
 
