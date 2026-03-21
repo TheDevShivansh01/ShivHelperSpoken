@@ -596,48 +596,13 @@ async def rar_next_prompt_callback(update: Update, context: ContextTypes.DEFAULT
     today_count = _get_today_count(user_id)
     daily_limit = DAILY_LIMIT_MEMBER if is_member else DAILY_LIMIT_NON_MEMBER
     remaining   = max(0, daily_limit - today_count)
+    info   = await _get_user_limit_info(context, user_id)
+    today_count = info["today_count"]
+    daily_limit = info["daily_limit"]
+    remaining   = info["remaining"]
 
-    if remaining <= 0:
-        try:
-            await query.edit_message_reply_markup(reply_markup=None)
-        except Exception:
-            pass
-
-        is_member = await _is_channel_member(context, user_id)
-        if not is_member:
-            msg = (
-                f"⚠️ <b>No Tokens left today.</b>\n\n"
-                f"Join our channel for <b>{DAILY_LIMIT_MEMBER} sessions/day</b> free!\n\n"
-                f"💎 <b>Premium — {PREMIUM_PRICE} = {PREMIUM_TOKENS} Tokens</b>"
-            )
-            keyboard = InlineKeyboardMarkup([[
-                InlineKeyboardButton("👉 Join Channel (Free)", url=CHANNEL_INVITE_URL),
-            ], [
-                InlineKeyboardButton(
-                    f"💎 Buy Premium",
-                    url=f"https://t.me/{BOT_USERNAME}?start=premium"
-                ),
-            ]])
-        else:
-            msg = (
-                f"⚠️ <b>No Tokens left today.</b>\n\n"
-                f"💎 <b>Premium — {PREMIUM_PRICE} = {PREMIUM_TOKENS} Tokens</b>"
-            )
-            keyboard = InlineKeyboardMarkup([[
-                InlineKeyboardButton(
-                    f"💎 Buy Premium ",
-                    url=f"https://t.me/{BOT_USERNAME}?start=premium"
-                ),
-            ]])
-        try:
-            await context.bot.send_message(
-                chat_id=chat_id, text=msg,
-                parse_mode="HTML",
-                reply_markup=keyboard,
-                disable_web_page_preview=True
-            )
-        except Exception as e:
-            print(f"[rar_next_prompt_callback] {e}")
+    if info["remaining"] <= 0:
+        await _send_limit_reached_msg(update, context, info)
         return
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("🟢 Easy",     callback_data="rar_level_easy"),
