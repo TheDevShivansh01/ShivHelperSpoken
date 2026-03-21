@@ -313,18 +313,18 @@ async def next_read_and_record_command(update: Update, context: ContextTypes.DEF
         user_id  = update.effective_user.id
         chat_id  = update.effective_chat.id
        
-
+        info = await _get_user_limit_info(context, user_id)
+        if info["remaining"] <= 0:
+            await _send_limit_reached_msg(update, context, info)
+            return
+        
         existing = rar_chat_state.get(chat_id)
         if existing and existing.get("paragraph"):
             await _safe_reply(update, context,
                 "⏳ <b>A paragraph is already active!</b>\n\nEveryone record it first.")
             return
 
-        info = await _get_user_limit_info(context, user_id)
-        print("info",info)
-        if info["remaining"] <= 0:
-            await _send_limit_reached_msg(update, context, info)
-            return
+      
 
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton("🟢 Easy",     callback_data="rar_level_easy"),
