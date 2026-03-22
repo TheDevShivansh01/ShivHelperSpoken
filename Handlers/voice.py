@@ -7,8 +7,8 @@ from datetime import date
 from pydub import AudioSegment
 from Handlers import readandrecord as rar_module
 from Handlers.readandrecord import (
-    handle_word_practice_voice,   # ← ADD
-    word_practice_state,          # ← ADD
+    handle_word_practice_voice,   
+    word_practice_state,          
 )
 from fuzzywuzzy import fuzz
 from telegram import Update

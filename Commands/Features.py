@@ -89,6 +89,7 @@ FEAT_READRECORD = (
     "├ 🥉 Developing Voice (avg ≥60%)\n"
     "├ 📖 Practitioner     (avg ≥40%)\n"
     "└ 🌱 Beginner         (avg &lt;40%)\n\n"  # ← &lt; instead of 
+    "└ Note: Score less than 25 % No review\n\n"  # ← &lt; instead of 
     "📅 <b>Daily Limits:</b>\n"
     "├ 👤 Guest          →  2 sessions/day\n"
     "├ ✅ Channel Member →  10 sessions/day\n"

@@ -33,7 +33,7 @@ BOT_USERNAME       = "spoken_helper_bot"
 
 DAILY_LIMIT_NON_MEMBER = 2
 DAILY_LIMIT_MEMBER     = 10
-MIN_SCORE_TO_COUNT     = 30
+MIN_SCORE_TO_COUNT     = 25
 word_practice_state: dict = {}
 LEVEL_LABELS = {
     "easy"    : "🟢 Easy",
@@ -476,7 +476,7 @@ async def handle_rar_voice(
         # ── score pehle calculate karo ─────────────────────────────────────
         score = _similarity_score(transcript, paragraph)
         if score < MIN_SCORE_TO_COUNT:
-            return True   # silent — no limit deducted
+            return False   # silent — no limit deducted
 
         # ── limit check — token > channel > guest ──────────────────────────
         info        = await _get_user_limit_info(context, user_id)
@@ -1079,7 +1079,7 @@ def _build_practice_message(words: list, completed: set) -> str:
     msg = (
         f"🎯 <b>Word Practice Session</b>\n"
         f"━━━━━━━━━━━━━━━━\n\n"
-        f"<i>Record each word clearly. 90%+ match = done!</i>\n\n"
+        f"<i>Record each word clearly. 50%+ match = done!</i>\n\n"
         f"{''.join(chr(10) + l for l in lines)}\n\n"
     )
 
@@ -1089,16 +1089,11 @@ def _build_practice_message(words: list, completed: set) -> str:
         msg += f"🎤 <i>Say any word above to practice. {remaining} remaining.</i>"
 
     return msg
-
 async def handle_word_practice_voice(
     update    : Update,
     context   : ContextTypes.DEFAULT_TYPE,
     transcript: str,
 ) -> bool:
-    """
-    Called from voice.py BEFORE handle_rar_voice check.
-    Returns True if handled here.
-    """
     try:
         user_id = update.effective_user.id
         chat_id = update.effective_chat.id
@@ -1113,29 +1108,27 @@ async def handle_word_practice_voice(
 
         transcript_clean = _normalize(transcript)
 
-        matched_word = None
+        # ✅ Saare words check karo — jo bhi match kare sab complete karo
+        any_matched = False
         for word in words:
             if word in completed:
-                continue   # already done
+                continue  # already done
 
             word_clean = _normalize(word)
-            # similarity between transcript and single word
             from difflib import SequenceMatcher
             ratio = SequenceMatcher(None, transcript_clean, word_clean).ratio() * 100
 
-            if ratio >= 60:
-                matched_word = word
-                break
+            if ratio >= 40:
+                completed.add(word)   # ✅ break nahi — loop jaari rahega
+                any_matched = True
 
-        if not matched_word:
-            # no match — silent, let them try again
-            return True
+        if not any_matched:
+            return False  # koi match nahi — RAR/Thought try karega
 
-        # ── word matched ──────────────────────────────────────────────────
-        completed.add(matched_word)
+        # ✅ Jo bhi match hua save karo
         session["completed"] = completed
 
-        # update message with green tick
+        # Message update karo
         updated_msg = _build_practice_message(words, completed)
         try:
             await context.bot.edit_message_text(
@@ -1147,23 +1140,28 @@ async def handle_word_practice_voice(
         except Exception as e:
             print(f"[handle_word_practice_voice] edit failed: {e}")
 
-        # all words done
+        # Saare words complete?
+        # Saare words complete?
         if len(completed) == len(words):
             word_practice_state.pop(user_id, None)
+            next_keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("▶️ Next Read & Record", callback_data="rar_next_prompt")
+            ]])
             try:
                 await update.message.reply_text(
-                    "🎉 <b>Word Practice Complete!</b>\n\n"
-                    "You've successfully pronounced all words!  Next Para with /record💪",
-                    parse_mode="HTML"
+                "🎉 <b>Word Practice Complete!</b>\n\n"
+                "You've successfully pronounced all words! 💪",
+                parse_mode="HTML",
+                reply_markup=next_keyboard
                 )
             except Exception:
                 await context.bot.send_message(
-                    chat_id=chat_id,
-                    text="🎉 <b>Word Practice Complete!</b>\n\nYou've successfully pronounced all words! 💪",
-                    parse_mode="HTML"
-                )
-
-        return True
+            chat_id=chat_id,
+            text="🎉 <b>Word Practice Complete!</b>\n\nYou've successfully pronounced all words! 💪",
+            parse_mode="HTML",
+            reply_markup=next_keyboard
+            )
+        return True  # ✅ Sirf tab True jab koi word actually match hua
 
     except Exception as e:
         print(f"[handle_word_practice_voice] {e}")
