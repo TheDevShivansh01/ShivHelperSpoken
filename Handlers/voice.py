@@ -7,8 +7,6 @@ from datetime import date
 from pydub import AudioSegment
 from Handlers import readandrecord as rar_module
 from Handlers.readandrecord import (
-    handle_rar_voice,
-    rar_chat_state,
     handle_word_practice_voice,   # ← ADD
     word_practice_state,          # ← ADD
 )

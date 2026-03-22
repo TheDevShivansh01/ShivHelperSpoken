@@ -324,10 +324,7 @@ async def next_read_and_record_command(update: Update, context: ContextTypes.DEF
             return
         
         existing = rar_chat_state.get(chat_id)
-        if existing and existing.get("paragraph"):
-            await _safe_reply(update, context,
-                "⏳ <b>A paragraph is already active!</b>\n\nEveryone record it first.")
-            return
+        
 
       
 
@@ -377,15 +374,7 @@ async def rar_level_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # ── already active paragraph in this chat ─────────────────────────────
     existing = rar_chat_state.get(chat_id)
     
-    if existing and existing.get("paragraph"):
-        try:
-            await query.answer(
-                "⏳ A paragraph is already active! Everyone record first.",
-                show_alert=True
-            )
-        except Exception:
-            pass
-        return
+    
 
     # ── load paragraph ─────────────────────────────────────────────────────
     try:
