@@ -37,5 +37,6 @@ REPORT_FILES = [
     "Data/payment.jpg" ,
     "UserScore/speechscore.xlsx",
     "UserScore/premium_tokens.xlsx",
-    "Data/reading_paragraphs.xlsx"
+    "Data/reading_paragraphs.xlsx",
+    "UserScore/quiz_master.xlsx"
 ]

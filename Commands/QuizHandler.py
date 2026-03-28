@@ -12,10 +12,10 @@ from telegram.ext import ContextTypes
 from telegram.error import BadRequest, Forbidden, TimedOut
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-QUIZ_GROUP_ID           = -5033878244       # ← replace with your QuizGroup ID
+QUIZ_GROUP_ID           = -1003818345268      # ← replace with your QuizGroup ID
 BOT_MANAGEMENT_GROUP_ID = -1002359766306
 
-MASTER_EXCEL_PATH = "quiz_master.xlsx"         # srno | filename | numberofquestion | language
+MASTER_EXCEL_PATH = "UserScore/quiz_master.xlsx"         # srno | filename | numberofquestion | language
 QUIZ_FOLDER       = "quiz_files"               # folder where individual quiz .xlsx files live
 
 os.makedirs(QUIZ_FOLDER, exist_ok=True)
