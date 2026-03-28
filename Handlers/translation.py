@@ -11,6 +11,7 @@ from Handlers.command import register_group
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.helpers import escape_markdown
 from Handlers.voice import STREAK_EXCEL_PATH,_load_streak_df
+from Commands.wordgame import word_game_state, wordgame_message_handler as _wg_handler
 from Handlers.manageTokens import BOT_MANAGEMENT_GROUP_ID, addpara_message_handler
 
 EASY_FILEPATH = "UserScore/easytranslateSentences.xlsx"
@@ -583,6 +584,14 @@ async def translation_message_handler(update: Update, context: ContextTypes.DEFA
             if handled:
                 return
         await register_group(update, context)
+
+        if chat_id in word_game_state:
+            message_text = update.message.text.strip()
+            words = message_text.split()
+            if len(words) == 1:
+                await _wg_handler(update, context)
+                return
+    
         if chat_id not in translation_game_state:
             return
  

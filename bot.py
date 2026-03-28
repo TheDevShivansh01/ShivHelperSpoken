@@ -5,10 +5,13 @@ from Handlers.translation import start_translation_command,mystreak_command,addd
 from Handlers.common import send_thought_of_the_day,bot_added_to_group_handler,download_report_command,scheduled_send_thought,update_report_command
 from Handlers.voice import handle_voice_message
 from Handlers.manageTokens import add_tokens_command,start_command,addpara_command,deletepara_command,deletepara_callback,addpara_level_callback
-from Handlers.readandrecord import (next_read_and_record_command,mss_back_callback,mss_level_callback,my_speech_score_command,rar_next_prompt_callback,rar_level_callback,rar_score_command,rar_leaderboard_command)
+from Handlers.readandrecord import next_read_and_record_command,mss_back_callback,mss_level_callback,my_speech_score_command,rar_next_prompt_callback,rar_level_callback,rar_score_command,rar_leaderboard_command
 from Commands.Features import features_command, features_callback
 from telegram.ext import ChatMemberHandler
 from Commands.DailyCurrentAffairs import sendtoday_command
+from Commands.wordgame import getword_command,stopword_command,wordgame_callback,wordgame_message_handler,mywordscore_command
+from Commands.QuizHandler import addquiz_command,handle_quiz_text,handle_quiz_poll,stop_command, QUIZ_GROUP_ID
+
 from telegram.ext import CallbackQueryHandler 
 import asyncio,time
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -23,6 +26,7 @@ def main():
     # Import
 
 # Inside main(), after existing handlers:
+
     application.add_handler(MessageHandler(filters.VOICE, handle_voice_message))
     application.add_handler(CommandHandler('start', start_command))
     application.add_handler(CommandHandler('help', help_command))
@@ -40,7 +44,15 @@ def main():
     application.add_handler(CallbackQueryHandler(addpara_level_callback, pattern="^addpara_level_"))
     application.add_handler(CallbackQueryHandler(deletepara_callback,    pattern="^deletepara_"))
     application.add_handler(CommandHandler("next", next_sentence_command))
-    application.add_handler(MessageHandler(filters.TEXT  & ~filters.COMMAND,translation_message_handler))
+    
+# Text messages in quiz group (for selection / filename / language steps)
+    application.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Chat(QUIZ_GROUP_ID), handle_quiz_text)
+)
+
+    application.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND, translation_message_handler)
+)
     application.add_handler(CommandHandler("brdmessagespoken", broadcast_message))
     application.add_handler(CommandHandler("sendtoday", sendtoday_command))
     application.add_handler(ChatMemberHandler(bot_added_to_group_handler, ChatMemberHandler.MY_CHAT_MEMBER))
@@ -56,6 +68,25 @@ def main():
     application.add_handler(CommandHandler("updatereport", update_report_command))
     application.add_handler(CallbackQueryHandler(rar_next_prompt_callback, pattern="^rar_next_prompt$"))
     application.add_handler(CallbackQueryHandler(difficulty_callback, pattern="^tg_diff_"))
+
+
+
+    #==========word
+    application.add_handler(CommandHandler("getword", getword_command))
+    application.add_handler(CommandHandler("stopword", stopword_command))
+    application.add_handler(CommandHandler("mywordscore", mywordscore_command))
+
+
+    #========Quiz
+    application.add_handler(CommandHandler("addquiz", addquiz_command))
+    application.add_handler(CommandHandler("collect",    stop_command))
+
+
+    # Poll messages in quiz group (forwarded or sent polls)
+    application.add_handler(MessageHandler(filters.POLL & filters.Chat(QUIZ_GROUP_ID),handle_quiz_poll))
+
+    application.add_handler(CallbackQueryHandler(wordgame_callback, pattern="^wg_"))
+    application.add_handler(CallbackQueryHandler(wordgame_callback, pattern="^wg_next$"))
     scheduler = AsyncIOScheduler(timezone=timezone('Asia/Kolkata'))
     loop = asyncio.get_event_loop()
     scheduler.add_job(schedule_send_thought_job, 'cron', hour=7, minute=00, args=[application, loop])

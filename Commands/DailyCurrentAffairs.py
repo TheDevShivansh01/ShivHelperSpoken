@@ -195,10 +195,8 @@ async def sendtoday_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             correct_index = mcq["correct_index"]
             explanation   = mcq["explanation"]
 
-            # build question: english + hindi on next line if fits
             question = _build_poll_question(english_q, hindi_q)
 
-            # shuffle options
             shuffled_options, new_correct = _shuffle_options(options, correct_index)
 
             try:
