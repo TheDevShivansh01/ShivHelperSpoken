@@ -677,3 +677,210 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  /updatequizzip  — reply with a ZIP to restore all quiz_files
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def updatequizzip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id != QUIZ_GROUP_ID:
+        try:
+            await update.message.reply_text("❌ This command is only for the Quiz Group.")
+        except Exception:
+            pass
+        return
+
+    # Check if the message itself or the replied-to message has a document
+    doc = None
+    if update.message.document:
+        doc = update.message.document
+    elif update.message.reply_to_message and update.message.reply_to_message.document:
+        doc = update.message.reply_to_message.document
+
+    if doc is None:
+        try:
+            await update.message.reply_text(
+                "📦 <b>How to use /updatequizzip:</b>\n\n"
+                "Reply to a <b>.zip</b> file with this command.\n"
+                "The ZIP should contain quiz <code>.xlsx</code> files "
+                "(directly or inside a <code>quiz_files/</code> folder).\n\n"
+                "Master will be rebuilt automatically from extracted files.",
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+        return
+
+    if not doc.file_name.endswith(".zip"):
+        try:
+            await update.message.reply_text("❌ Please send a <b>.zip</b> file.", parse_mode="HTML")
+        except Exception:
+            pass
+        return
+
+    try:
+        status_msg = await update.message.reply_text("⏳ Downloading & extracting ZIP…")
+    except Exception:
+        status_msg = None
+
+    try:
+        # Download the ZIP to a temp file
+        tg_file  = await context.bot.get_file(doc.file_id)
+        tmp_zip  = os.path.join(tempfile.gettempdir(), f"quiz_upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
+        await tg_file.download_to_drive(tmp_zip)
+
+        extracted = 0
+        skipped   = 0
+
+        with zipfile.ZipFile(tmp_zip, "r") as zf:
+            for member in zf.namelist():
+                # Accept .xlsx files anywhere inside the ZIP
+                if not member.endswith(".xlsx"):
+                    continue
+                basename = os.path.basename(member)
+                if not basename:          # skip folder entries
+                    continue
+                # Skip the master file if it sneaks in
+                if basename.lower() == "quiz_master.xlsx":
+                    skipped += 1
+                    continue
+                dest = os.path.join(QUIZ_FOLDER, basename)
+                with zf.open(member) as src, open(dest, "wb") as dst:
+                    dst.write(src.read())
+                extracted += 1
+
+        os.remove(tmp_zip)
+
+        # Rebuild master from all files now on disk
+        rows = _rebuild_master_from_disk()
+
+        result = (
+            f"✅ <b>ZIP extracted!</b>\n\n"
+            f"├ Files restored → <b>{extracted}</b>\n"
+            f"├ Skipped        → <b>{skipped}</b> (non-quiz)\n"
+            f"└ Master rebuilt → <b>{len(rows)}</b> entries\n\n"
+            f"📊 Sending updated master…"
+        )
+
+        if status_msg:
+            try:
+                await status_msg.edit_text(result, parse_mode="HTML")
+            except Exception:
+                pass
+
+        # Send the freshly rebuilt master
+        with open(MASTER_EXCEL_PATH, "rb") as f:
+            await context.bot.send_document(
+                chat_id=chat_id,
+                document=f,
+                filename="quiz_master.xlsx",
+                caption=f"📊 Rebuilt master — {len(rows)} quiz file(s)"
+            )
+
+    except zipfile.BadZipFile:
+        msg = "❌ That file doesn't look like a valid ZIP."
+        if status_msg:
+            try:
+                await status_msg.edit_text(msg)
+            except Exception:
+                pass
+        else:
+            try:
+                await update.message.reply_text(msg)
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"[updatequizzip_command] {e}")
+        msg = f"❌ Error: {e}"
+        if status_msg:
+            try:
+                await status_msg.edit_text(msg)
+            except Exception:
+                pass
+        else:
+            try:
+                await update.message.reply_text(msg)
+            except Exception:
+                pass
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  /updatequizmaster  — reply with quiz_master.xlsx to replace it on disk
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def updatequizmaster_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id != QUIZ_GROUP_ID:
+        try:
+            await update.message.reply_text("❌ This command is only for the Quiz Group.")
+        except Exception:
+            pass
+        return
+
+    # Accept document from the command message itself OR the replied-to message
+    doc = None
+    if update.message.document:
+        doc = update.message.document
+    elif update.message.reply_to_message and update.message.reply_to_message.document:
+        doc = update.message.reply_to_message.document
+
+    if doc is None:
+        try:
+            await update.message.reply_text(
+                "📊 <b>How to use /updatequizmaster:</b>\n\n"
+                "Reply to a <b>quiz_master.xlsx</b> file with this command.\n"
+                "It will replace the master file on disk immediately.",
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+        return
+
+    if not doc.file_name.endswith(".xlsx"):
+        try:
+            await update.message.reply_text("❌ Please send a <b>.xlsx</b> file.", parse_mode="HTML")
+        except Exception:
+            pass
+        return
+
+    try:
+        status_msg = await update.message.reply_text("⏳ Downloading master file…")
+    except Exception:
+        status_msg = None
+
+    try:
+        tg_file = await context.bot.get_file(doc.file_id)
+
+        # Ensure the directory exists (e.g. UserScore/)
+        os.makedirs(os.path.dirname(MASTER_EXCEL_PATH) or ".", exist_ok=True)
+        await tg_file.download_to_drive(MASTER_EXCEL_PATH)
+
+        # Read back to confirm how many rows are in it
+        rows = _read_master_rows()
+
+        result = (
+            f"✅ <b>Master updated!</b>\n\n"
+            f"└ Entries found → <b>{len(rows)}</b>\n\n"
+            "The new master is now active on disk."
+        )
+
+        if status_msg:
+            try:
+                await status_msg.edit_text(result, parse_mode="HTML")
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"[updatequizmaster_command] {e}")
+        msg = f"❌ Error: {e}"
+        if status_msg:
+            try:
+                await status_msg.edit_text(msg)
+            except Exception:
+                pass
+        else:
+            try:
+                await update.message.reply_text(msg)
+            except Exception:
+                pass

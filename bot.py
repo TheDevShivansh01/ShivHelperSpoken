@@ -10,7 +10,7 @@ from Commands.Features import features_command, features_callback
 from telegram.ext import ChatMemberHandler
 from Commands.DailyCurrentAffairs import sendtoday_command
 from Commands.wordgame import getword_command,stopword_command,wordgame_callback,wordgame_message_handler,mywordscore_command
-from Commands.QuizHandler import addquiz_command,handle_quiz_text,handle_quiz_poll,stop_command, QUIZ_GROUP_ID
+from Commands.QuizHandler import addquiz_command,updatequizzip_command, updatequizmaster_command,handle_quiz_text,handle_quiz_poll,stop_command, QUIZ_GROUP_ID
 
 from telegram.ext import CallbackQueryHandler 
 import asyncio,time
@@ -78,6 +78,10 @@ def main():
 
 
     #========Quiz
+    
+
+    application.add_handler(CommandHandler("updatequizzip",    updatequizzip_command))
+    application.add_handler(CommandHandler("updatequizmaster", updatequizmaster_command))
     application.add_handler(CommandHandler("addquiz", addquiz_command))
     application.add_handler(CommandHandler("collect",    stop_command))
 
