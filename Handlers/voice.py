@@ -130,13 +130,19 @@ def _transcribe(wav_path: str) -> str | None:
         print(f"[Voice] Google SR API error: {e}")
         return None
 
-
-# ── Main handler ───────────────────────────────────────────────────────────────
 async def handle_voice_message(update: Update, context):
     message = update.message
     if not message or not message.voice:
         return
-    chat_id=message.chat.id
+    
+    # ✅ Background mein run karo — immediately return, dusre commands block nahi honge
+    asyncio.create_task(_process_voice(update, context))
+
+
+async def _process_voice(update: Update, context):
+    """Actual voice processing — runs in background"""
+    message = update.message
+    chat_id = message.chat.id
     user     = message.from_user
     user_id  = user.id
     username = user.username or user.first_name or f"user_{user_id}"
@@ -145,13 +151,11 @@ async def handle_voice_message(update: Update, context):
     wav_path = None
 
     try:
-        # ── Download .ogg from Telegram ────────────────────────────────────────
         voice_file = await context.bot.get_file(message.voice.file_id)
         with tempfile.NamedTemporaryFile(suffix='.ogg', delete=False) as tmp:
             ogg_path = tmp.name
         await voice_file.download_to_drive(ogg_path)
 
-        # ── Convert + Transcribe ───────────────────────────────────────────────
         loop = asyncio.get_event_loop()
 
         def process():
@@ -168,25 +172,21 @@ async def handle_voice_message(update: Update, context):
                 )
             except Exception:
                 await context.bot.send_message(
-                    chat_id=message.chat.id,
+                    chat_id=chat_id,
                     text="🎙️ Couldn't understand your voice. Please speak clearly and try again!"
                 )
             return
-        
 
         if user_id in word_practice_state:
             handled = await handle_word_practice_voice(update, context, transcribed)
             if handled:
                 return
 
-        # ── RAR CHECK FIRST — before any daily thought logic ──────────────────
         if rar_module.rar_chat_state.get(chat_id) and rar_module.rar_chat_state[chat_id].get("paragraph"):
             handled = await rar_module.handle_rar_voice(update, context, transcribed)
             if handled:
                 return
-        # ──────────────────────────────────────────────────────────────────────
 
-        # ── Daily Thought checks (only if NOT a RAR voice) ────────────────────
         thought = _get_todays_thought()
         if not thought:
             return
@@ -195,7 +195,6 @@ async def handle_voice_message(update: Update, context):
         if _already_submitted_today(user_id, df):
             return
 
-        # ── Fuzzy match ────────────────────────────────────────────────────────
         match_score = fuzz.token_set_ratio(
             transcribed.lower(),
             thought.lower()
@@ -215,9 +214,9 @@ async def handle_voice_message(update: Update, context):
                     f"🥇 Month Badges (÷30) : <b>{streak30}</b>",
                     parse_mode="HTML"
                 )
-            except Exception as ex:
+            except Exception:
                 await context.bot.send_message(
-                    chat_id=message.chat.id,
+                    chat_id=chat_id,
                     text=(
                         f"✅ <b>Well done, {username}!</b> {badge}\n\n"
                         f"📖 Match Score    : <b>{match_score}%</b>\n"
